@@ -8,7 +8,10 @@ module CsvImport
       result = ServiceResult.new success: true
 
       CSV.foreach(work_packages_path, headers: true) do |wp_data|
-        call = import_work_package(wp_data.to_h)
+        attributes = normalize_attributes(wp_data.to_h)
+
+        call = import_work_package(attributes)
+        fix_timestamps(attributes['timestamp'], call.result)
         result.add_dependent!(call)
       end
 
@@ -20,7 +23,7 @@ module CsvImport
     attr_accessor :user
 
     def import_work_package(data)
-      attributes = to_work_package_attributes(data)
+      attributes = data.except('timestamp', 'id')
 
       author = User.find(attributes.delete('author_id'))
 
@@ -29,13 +32,19 @@ module CsvImport
         .call(attributes: attributes)
     end
 
-    def to_work_package_attributes(csv_hash)
+    def fix_timestamps(timestamp, work_package)
+      parsed_time = DateTime.parse(timestamp)
+
+      fix_work_package_timestamp(parsed_time, work_package)
+      fix_journal_timestamp(parsed_time, work_package)
+    end
+
+    def normalize_attributes(csv_hash)
       csv_hash
         .map do |key, value|
-          [wp_attribute(key.downcase.strip), value]
-        end
-        .to_h
-        .except('timestamp', 'id')
+        [wp_attribute(key.downcase.strip), value]
+      end
+      .to_h
     end
 
     def wp_attribute(key)
@@ -53,6 +62,19 @@ module CsvImport
 
         (associations + cfs).to_h
       end
+    end
+
+    def fix_work_package_timestamp(timestamp, work_package)
+      work_package
+        .update_columns(created_at: timestamp,
+                        updated_at: timestamp)
+    end
+
+    def fix_journal_timestamp(timestamp, work_package)
+      work_package
+        .journals
+        .last
+        .update_columns(created_at: timestamp)
     end
   end
 end

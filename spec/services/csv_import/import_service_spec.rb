@@ -35,11 +35,11 @@ describe CsvImport::ImportService do
 
   let(:instance) { described_class.new(admin) }
   let(:call) { instance.call(work_packages_path) }
-  
+
   before do
     call
   end
-  
+
   it 'is successful' do
     expect(call)
       .to be_success
@@ -48,14 +48,14 @@ describe CsvImport::ImportService do
   it 'imports the work package' do
     expect(WorkPackage.count)
       .to eql 1
-    
+
     work_package = WorkPackage.first
     expect(work_package.author_id)
       .to eql(user1.id)
-    
+
     expect(work_package.subject)
       .to eql("A subject")
-    
+
     expect(work_package.description)
       .to eql('Some description with, comma and "quotes".')
 
@@ -64,5 +64,19 @@ describe CsvImport::ImportService do
 
     expect(work_package.send(:"custom_field_#{custom_field5.id}"))
       .to eql(custom_option1.value)
+
+    expect(work_package.created_at)
+      .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
+    expect(work_package.updated_at)
+      .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
+
+    expect(work_package.journals.length)
+      .to eql(1)
+
+    expect(work_package.journals.first.user)
+      .to eql(user1)
+
+    expect(work_package.journals.first.created_at)
+      .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
   end
 end
