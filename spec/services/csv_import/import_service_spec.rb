@@ -6,10 +6,23 @@ describe CsvImport::ImportService do
     FactoryBot.create(:user,
                       id: 5,
                       member_in_project: project1,
-                      member_with_permissions: %i(view_work_packags add_work_packages))
+                      member_with_permissions: %i(view_work_packages 
+                                                  add_work_packages
+                                                  edit_work_packages))
   end
   let!(:admin) do
-    FactoryBot.create(:admin)
+    FactoryBot.create(:admin, id: 3)
+  end
+  let!(:anonymous) do
+    # Cannot use the anonymous factory as setting id explicitly conflicts with it
+    AnonymousUser.new.tap do |u|
+      u.lastname = 'Anonymous'
+      u.login = ''
+      u.firstname = ''
+      u.mail = ''
+      u.status = 0
+      u.id = 1
+    end.save!
   end
   let!(:project1) do
     FactoryBot.create(:project, id: 1).tap do |p|
@@ -36,16 +49,14 @@ describe CsvImport::ImportService do
   let(:instance) { described_class.new(admin) }
   let(:call) { instance.call(work_packages_path) }
 
-  before do
-    call
-  end
-
   it 'is successful' do
     expect(call)
       .to be_success
   end
 
   it 'imports the work package' do
+    call
+
     expect(WorkPackage.count)
       .to eql 1
 
@@ -54,10 +65,10 @@ describe CsvImport::ImportService do
       .to eql(user1.id)
 
     expect(work_package.subject)
-      .to eql("A subject")
+      .to eql("A newer subject")
 
     expect(work_package.description)
-      .to eql('Some description with, comma and "quotes".')
+      .to eql('Some description with, comma and "quotes" but also newer.')
 
     expect(work_package.project_id)
       .to eql(project1.id)
@@ -68,15 +79,33 @@ describe CsvImport::ImportService do
     expect(work_package.created_at)
       .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
     expect(work_package.updated_at)
-      .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
+      .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
 
     expect(work_package.journals.length)
-      .to eql(1)
+      .to eql(2)
 
     expect(work_package.journals.first.user)
       .to eql(user1)
 
     expect(work_package.journals.first.created_at)
       .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
+
+    expect(work_package.journals.last.user)
+      .to eql(user1)
+
+    expect(work_package.journals.last.created_at)
+      .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
+  end
+
+  it 'does not send mails' do
+    # because querying for ActionMailer::Base.deliveries does not work somehow
+
+    expect(DeliverWorkPackageNotificationJob)
+      .not_to receive(:new)
+
+    call
+
+    expect(BaseMailer.perform_deliveries)
+      .to be_truthy
   end
 end

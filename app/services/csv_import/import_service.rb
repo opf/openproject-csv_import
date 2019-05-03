@@ -5,12 +5,25 @@ module CsvImport
     end
 
     def call(work_packages_path)
+      reset_work_packages_map
+
+      BaseMailer.with_deliveries(false) do
+        process_csv(work_packages_path)
+      end
+    end
+
+    private
+
+    attr_accessor :user
+
+    def process_csv(work_packages_path)
       result = ServiceResult.new success: true
 
       CSV.foreach(work_packages_path, headers: true) do |wp_data|
         attributes = normalize_attributes(wp_data.to_h)
 
         call = import_work_package(attributes)
+
         fix_timestamps(attributes['timestamp'], call.result)
         result.add_dependent!(call)
       end
@@ -18,18 +31,29 @@ module CsvImport
       result
     end
 
-    private
+    def import_work_package(attributes)
+      with_memorized_work_package(attributes['id']) do |work_package_id|
+        if work_package_id
+          update_work_package(work_package_id, attributes)
+        else
+          create_work_package(attributes)
+        end
+      end
+    end
 
-    attr_accessor :user
-
-    def import_work_package(data)
-      attributes = data.except('timestamp', 'id')
-
-      author = User.find(attributes.delete('author_id'))
-
+    def create_work_package(attributes)
       WorkPackages::CreateService
-        .new(user: author)
-        .call(attributes: attributes)
+        .new(user: find_user(attributes))
+        .call(attributes: work_package_attributes(attributes))
+    end
+
+    def update_work_package(id, attributes)
+      work_package = WorkPackage.find(id)
+
+      WorkPackages::UpdateService
+        .new(user: find_user(attributes),
+             work_package: work_package)
+        .call(attributes: work_package_attributes(attributes))
     end
 
     def fix_timestamps(timestamp, work_package)
@@ -45,6 +69,10 @@ module CsvImport
         [wp_attribute(key.downcase.strip), value]
       end
       .to_h
+    end
+
+    def work_package_attributes(attributes)
+      attributes.except('timestamp', 'id')
     end
 
     def wp_attribute(key)
@@ -66,7 +94,7 @@ module CsvImport
 
     def fix_work_package_timestamp(timestamp, work_package)
       work_package
-        .update_columns(created_at: timestamp,
+        .update_columns(created_at: [work_package.created_at, timestamp].min,
                         updated_at: timestamp)
     end
 
@@ -75,6 +103,28 @@ module CsvImport
         .journals
         .last
         .update_columns(created_at: timestamp)
+    end
+
+    def find_user(attributes)
+      User.find(attributes['user'])
+    end
+
+    def with_memorized_work_package(id)
+      work_package_id = work_packages_map[id]
+
+      call = yield(work_package_id)
+
+      work_packages_map[id] = call.result.id
+
+      call
+    end
+
+    def work_packages_map
+      @work_packages_map ||= {}
+    end
+
+    def reset_work_packages_map
+      @work_packages_map = {}
     end
   end
 end

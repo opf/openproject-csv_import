@@ -1,2 +1,3 @@
-Timestamp,Id,Subject,Description,Type,Author,Project, CF 5
-2019-05-02T12:19:32Z,1,A subject,"Some description with, comma and ""quotes"".",43,5,1,2
+Timestamp,Id,User,Subject,Description,Type,Project,CF 5
+2019-05-02T12:19:32Z,1,5,A subject,"Some description with, comma and ""quotes"".",43,1,2
+2019-05-02T12:20:32Z,1,5,A newer subject,"Some description with, comma and ""quotes"" but also newer.",43,1,2
