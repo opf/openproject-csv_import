@@ -2,13 +2,17 @@ require 'spec_helper'
 
 describe CsvImport::ImportService do
   let(:work_packages_path) { File.join(File.dirname(__FILE__), '../../fixtures/work_packages.csv') }
+  let!(:role) do
+    FactoryBot.create(:role, permissions: %i(view_work_packages
+                                             add_work_packages
+                                             edit_work_packages))
+
+  end
   let!(:user1) do
     FactoryBot.create(:user,
                       id: 5,
                       member_in_project: project1,
-                      member_with_permissions: %i(view_work_packages 
-                                                  add_work_packages
-                                                  edit_work_packages))
+                      member_through_role: role)
   end
   let!(:admin) do
     FactoryBot.create(:admin, id: 3)
@@ -30,8 +34,20 @@ describe CsvImport::ImportService do
       p.work_package_custom_fields = [custom_field5]
     end
   end
-  let!(:default_status) { FactoryBot.create(:default_status) }
-  let!(:default_priority) { FactoryBot.create(:default_priority) }
+  let!(:status1) { FactoryBot.create(:status, id: 1) }
+  let!(:status2) { FactoryBot.create(:status, id: 2) }
+
+  let!(:workflows) do
+    FactoryBot.create(:workflow,
+                      role: role,
+                      type: type,
+                      old_status: status1,
+                      new_status: status2)
+  end
+
+  let!(:priority1) { FactoryBot.create(:priority, id: 1) }
+  let!(:priority2) { FactoryBot.create(:priority, id: 2) }
+
   let(:custom_option1) do
     FactoryBot.build(:custom_option,
                      value: "Blubs",
@@ -43,6 +59,40 @@ describe CsvImport::ImportService do
   let!(:type) do
     FactoryBot.create(:type, id: 43) do |t|
       t.custom_fields = [custom_field5]
+    end
+  end
+  let!(:version1) do
+    FactoryBot.create(:version, project: project1, id: 1)
+  end
+  let!(:version2) do
+    FactoryBot.create(:version, project: project1, id: 2)
+  end
+
+  let!(:pdf_attachment) do
+    FactoryBot.create(:attachment,
+                      container: nil,
+                      author: admin,
+                      filename: 'first.pdf',
+                      content_type: 'application/pdf').tap do |a|
+      a.update_columns(container_id: -1)
+    end
+  end
+  let!(:png_attachment) do
+    FactoryBot.create(:attachment,
+                      container: nil,
+                      author: admin,
+                      filename: 'image.png',
+                      content_type: 'image/png').tap do |a|
+      a.update_columns(container_id: -1)
+    end
+  end
+  let!(:doc_attachment) do
+    FactoryBot.create(:attachment,
+                      container: nil,
+                      author: admin,
+                      filename: "blubs.doc",
+                      content_type: 'application/msword').tap do |a|
+      a.update_columns(container_id: -1)
     end
   end
 
@@ -58,7 +108,7 @@ describe CsvImport::ImportService do
     call
 
     expect(WorkPackage.count)
-      .to eql 1
+      .to eql 2
 
     work_package = WorkPackage.first
     expect(work_package.author_id)
@@ -73,6 +123,15 @@ describe CsvImport::ImportService do
     expect(work_package.project_id)
       .to eql(project1.id)
 
+    expect(work_package.fixed_version_id)
+      .to eql(version2.id)
+
+    expect(work_package.status_id)
+      .to eql(status2.id)
+
+    expect(work_package.priority_id)
+      .to eql(priority1.id)
+
     expect(work_package.send(:"custom_field_#{custom_field5.id}"))
       .to eql(custom_option1.value)
 
@@ -80,6 +139,9 @@ describe CsvImport::ImportService do
       .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
     expect(work_package.updated_at)
       .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
+
+    expect(work_package.attachments.map(&:filename))
+      .to match_array([png_attachment.filename, doc_attachment.filename])
 
     expect(work_package.journals.length)
       .to eql(2)
@@ -94,6 +156,34 @@ describe CsvImport::ImportService do
       .to eql(user1)
 
     expect(work_package.journals.last.created_at)
+      .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
+
+    expect(work_package.journals.first.attachable_journals.map(&:filename))
+      .to match_array([pdf_attachment.filename, png_attachment.filename])
+
+    expect(work_package.journals.last.attachable_journals.map(&:filename))
+      .to match_array([png_attachment.filename, doc_attachment.filename])
+
+    linked_png_attachment = work_package.attachments.detect { |a| a.filename == png_attachment.filename }
+
+    expect(linked_png_attachment.created_at )
+      .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
+
+    expect(linked_png_attachment.journals.length)
+      .to eql 1
+
+    expect(linked_png_attachment.journals.first.created_at)
+      .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
+
+    linked_doc_attachment = work_package.attachments.detect { |a| a.filename == doc_attachment.filename }
+
+    expect(linked_doc_attachment.created_at )
+      .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
+
+    expect(linked_doc_attachment.journals.length)
+      .to eql 1
+
+    expect(linked_doc_attachment.journals.first.created_at)
       .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
   end
 
