@@ -1,0 +1,37 @@
+<%= styled_form_tag csv_import_import_path, method: :post, multipart: true do %>
+  <fieldset class="form--fieldset">
+    <legend class="form--fieldset-legend">CSV Files</legend>
+
+    <div class="form--field">
+      <%= styled_label_tag  'users_file', I18n.t(:label_user_plural) %>
+      <div class="form--field-container">
+        <%= styled_file_field_tag "users_file" %>
+      </div>
+    </div>
+
+    <div class="form--field">
+      <%= styled_label_tag  'versions_file', I18n.t(:label_version_plural) %>
+      <div class="form--field-container">
+        <%= styled_file_field_tag "versions_file" %>
+      </div>
+    </div>
+
+    <div class="form--field">
+      <%= styled_label_tag  'mappings_file', "Process Id/Aspect - Mapping" %>
+      <div class="form--field-container">
+        <%= styled_file_field_tag "mappings_file" %>
+      </div>
+    </div>
+
+    <div class="form--field">
+      <%= styled_label_tag  'work_package_file', I18n.t(:label_work_package_plural) %>
+      <div class="form--field-container">
+        <%= styled_file_field_tag "work_package_file" %>
+      </div>
+    </div>
+  </fieldset>
+
+  <%= content_tag 'csv-import-attachments', '' %>
+
+  <%= styled_submit_tag 'Import' %>
+<% end %>

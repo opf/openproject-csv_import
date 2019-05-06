@@ -11,5 +11,8 @@ module OpenProject::CsvImport
     register 'openproject-csv_import',
              :author_url => 'https://openproject.org'
 
+    add_api_endpoint 'API::V3::Root' do
+      mount ::API::V3::CsvImport::AttachmentsAPI
+    end
   end
 end
