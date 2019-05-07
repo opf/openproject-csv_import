@@ -17,7 +17,7 @@ module CsvImport
           end
 
           data.each_key do |key|
-            data[key] = data[key].sort_by { |r| r.attributes['timestamp'] }
+            data[key] = data[key].sort_by { |r| r.data['timestamp'] }
           end
 
           data

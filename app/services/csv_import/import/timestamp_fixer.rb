@@ -2,15 +2,15 @@ module CsvImport
   module Import
     class TimestampFixer
       class << self
-        def fix(attributes, result)
-          parsed_time = attributes['timestamp']
+        def fix(record)
+          parsed_time = record.timestamp
 
-          work_package = result[:work_package]
+          work_package = record.work_package
 
           fix_work_package_timestamp(parsed_time, work_package)
           fix_work_package_journal_timestamp(parsed_time, work_package)
 
-          attachments = result[:attachments]
+          attachments = record.attachments
 
           fix_attachment_timestamp(parsed_time, attachments)
           fix_attachment_journal_timestamp(parsed_time, attachments)
