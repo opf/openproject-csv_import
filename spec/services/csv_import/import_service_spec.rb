@@ -5,7 +5,8 @@ describe CsvImport::ImportService do
   let!(:role) do
     FactoryBot.create(:role, permissions: %i(view_work_packages
                                              add_work_packages
-                                             edit_work_packages))
+                                             edit_work_packages
+                                             manage_work_package_relations))
 
   end
   let!(:user1) do
@@ -185,6 +186,22 @@ describe CsvImport::ImportService do
 
     expect(linked_doc_attachment.journals.first.created_at)
       .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
+
+    expect(work_package.relations.direct.length)
+      .to eql 1
+
+    relation = work_package.relations.direct.first
+
+    expect(relation.relation_type)
+      .to eql(Relation::TYPE_RELATES)
+
+    expect(relation.from)
+      .to eql work_package
+
+    work_package2 = WorkPackage.last
+
+    expect(relation.to)
+      .to eql work_package2
   end
 
   it 'does not send mails' do

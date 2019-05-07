@@ -8,7 +8,7 @@ module CsvImport
       reset_work_packages_map
 
       BaseMailer.with_deliveries(false) do
-        process_csv(work_packages_path)
+        import(work_packages_path)
       end
     end
 
@@ -16,15 +16,64 @@ module CsvImport
 
     attr_accessor :user
 
-    def process_csv(work_packages_path)
-      result = ServiceResult.new success: true
+    def import(work_packages_path)
+      data = parse_csv(work_packages_path)
+
+      wp_call = process_work_packages(data)
+
+      if wp_call.success?
+        relation_call = process_relations(data)
+
+        wp_call.add_dependent!(relation_call)
+      end
+
+      wp_call
+    end
+
+    def parse_csv(work_packages_path)
+      data = Hash.new do |h, k|
+        h[k] = []
+      end
 
       CSV.foreach(work_packages_path, headers: true) do |wp_data|
         attributes = normalize_attributes(wp_data.to_h)
 
-        call = import_work_package(attributes)
+        # ToDo: Transform timestamp into DateTime to only do it once
 
-        fix_timestamps(attributes, call.result)
+        data[attributes['id'].strip] << attributes
+      end
+
+      data
+    end
+
+    def process_work_packages(data)
+      result = ServiceResult.new success: true
+
+      data.each do |_, records|
+        ordered_records = records.sort_by { |r| DateTime.parse(r['timestamp']) }
+
+        ordered_records.each do |record|
+          call = import_work_package(record)
+
+          fix_timestamps(record, call.result)
+
+          result.add_dependent!(call)
+        end
+      end
+
+      result
+    end
+
+    def process_relations(data)
+      result = ServiceResult.new success: true
+
+      data.each do |_, records|
+        ordered_records = records.sort_by { |r| DateTime.parse(r['timestamp']) }
+
+        last_record = ordered_records.last
+
+        call = import_relations(last_record)
+
         result.add_dependent!(call)
       end
 
@@ -39,6 +88,34 @@ module CsvImport
           create_work_package(attributes)
         end
       end
+    end
+
+    def import_relations(attributes)
+      user = find_user(attributes)
+
+      result = ServiceResult.new success: true
+
+      related_to_ids = (attributes['related to'] || '').split(';').map(&:strip)
+
+      return result if related_to_ids.empty?
+
+      from_id = work_packages_map[attributes['id']]
+
+      related_to_ids.each do |related_to_id|
+        to_id = work_packages_map[related_to_id]
+
+        relation = Relation.new relation_type: Relation::TYPE_RELATES,
+                                from_id: from_id,
+                                to_id: to_id
+
+        call = Relations::CreateService
+               .new(user: user)
+               .call(relation)
+
+        result.add_dependent!(call)
+      end
+
+      result
     end
 
     def create_work_package(attributes)
