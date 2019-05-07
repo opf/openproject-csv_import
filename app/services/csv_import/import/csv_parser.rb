@@ -10,8 +10,8 @@ module CsvImport
           CSV.foreach(work_packages_path, headers: true) do |wp_data|
             attributes = normalize_attributes(wp_data.to_h)
             attributes['timestamp'] = DateTime.parse(attributes['timestamp'])
-            attributes['attachments'] = (attributes['attachments'] || '').split(';').map(&:strip)
-            attributes['related to'] = (attributes['related to'] || '').split(';').map(&:strip)
+            attributes['attachments'] = parse_multi_values(attributes['attachments'])
+            attributes['related to'] = parse_multi_values(attributes['related to'])
 
             data[attributes['id'].strip] << attributes
           end
@@ -50,6 +50,10 @@ module CsvImport
 
             map
           end
+        end
+
+        def parse_multi_values(value)
+          (value || '').split(';').map(&:strip)
         end
       end
     end
