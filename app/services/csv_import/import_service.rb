@@ -17,7 +17,7 @@ module CsvImport
     attr_accessor :user
 
     def import(work_packages_path)
-      data = parse_csv(work_packages_path)
+      data = ::CsvImport::Import::CsvParser.parse(work_packages_path)
 
       wp_call = process_work_packages(data)
 
@@ -30,27 +30,11 @@ module CsvImport
       wp_call
     end
 
-    def parse_csv(work_packages_path)
-      data = Hash.new do |h, k|
-        h[k] = []
-      end
-
-      CSV.foreach(work_packages_path, headers: true) do |wp_data|
-        attributes = normalize_attributes(wp_data.to_h)
-
-        # ToDo: Transform timestamp into DateTime to only do it once
-
-        data[attributes['id'].strip] << attributes
-      end
-
-      data
-    end
-
     def process_work_packages(data)
       result = ServiceResult.new success: true
 
       data.each do |_, records|
-        ordered_records = records.sort_by { |r| DateTime.parse(r['timestamp']) }
+        ordered_records = records.sort_by { |r| r['timestamp'] }
 
         ordered_records.each do |record|
           call = import_work_package(record)
@@ -68,7 +52,7 @@ module CsvImport
       result = ServiceResult.new success: true
 
       data.each do |_, records|
-        ordered_records = records.sort_by { |r| DateTime.parse(r['timestamp']) }
+        ordered_records = records.sort_by { |r| r['timestamp'] }
 
         last_record = ordered_records.last
 
@@ -95,7 +79,7 @@ module CsvImport
 
       result = ServiceResult.new success: true
 
-      related_to_ids = (attributes['related to'] || '').split(';').map(&:strip)
+      related_to_ids = attributes['related to']
 
       return result if related_to_ids.empty?
 
@@ -153,7 +137,7 @@ module CsvImport
     end
 
     def fix_timestamps(attributes, result)
-      parsed_time = DateTime.parse(attributes['timestamp'])
+      parsed_time = attributes['timestamp']
 
       work_package = result[:work_package]
 
@@ -167,7 +151,7 @@ module CsvImport
     end
 
     def attach(work_package, attributes)
-      names = attachment_names(attributes)
+      names = attributes['attachments']
 
       return [] if names.empty?
 
@@ -189,39 +173,8 @@ module CsvImport
       end
     end
 
-    def normalize_attributes(csv_hash)
-      csv_hash
-        .map do |key, value|
-        [wp_attribute(key.downcase.strip), value]
-      end
-      .to_h
-    end
-
     def work_package_attributes(attributes)
       attributes.except('timestamp', 'id', 'attachments')
-    end
-
-    def wp_attribute(key)
-      wp_attribute_map[key] || key
-    end
-
-    def wp_attribute_map
-      @wp_attribute_map ||= begin
-        associations = WorkPackage
-                       .reflect_on_all_associations
-                       .map { |a| [a.name.to_s, a.foreign_key] }
-        cfs = WorkPackageCustomField
-              .pluck(:id)
-              .map { |id| ["cf #{id}", "custom_field_#{id}"] }
-
-        statics = [['version', 'fixed_version_id']]
-
-        map = (associations + cfs + statics).to_h
-
-        map.delete('attachments')
-
-        map
-      end
     end
 
     def fix_work_package_timestamp(timestamp, work_package)
@@ -252,10 +205,6 @@ module CsvImport
           .last
           .update_columns(created_at: timestamp)
       end
-    end
-
-    def attachment_names(attributes)
-      (attributes['attachments'] || '').split(';').map(&:strip)
     end
 
     def find_user(attributes)
