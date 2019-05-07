@@ -35,9 +35,9 @@ module CsvImport
 
       data.each do |_, records|
         records.each do |record|
-          call = import_work_package(record)
+          call = import_work_package(record.attributes)
 
-          ::CsvImport::Import::TimestampFixer.fix(record, call.result)
+          ::CsvImport::Import::TimestampFixer.fix(record.attributes, call.result)
 
           result.add_dependent!(call)
         end
@@ -52,7 +52,7 @@ module CsvImport
       data.each do |_, records|
         last_record = records.last
 
-        call = import_relations(last_record)
+        call = import_relations(last_record.attributes)
 
         result.add_dependent!(call)
       end

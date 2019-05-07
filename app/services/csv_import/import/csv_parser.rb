@@ -13,11 +13,11 @@ module CsvImport
             attributes['attachments'] = parse_multi_values(attributes['attachments'])
             attributes['related to'] = parse_multi_values(attributes['related to'])
 
-            data[attributes['id'].strip] << attributes
+            data[attributes['id'].strip] << ::CsvImport::Import::Record.new(attributes)
           end
 
           data.each_key do |key|
-            data[key] = data[key].sort_by { |r| r['timestamp'] }
+            data[key] = data[key].sort_by { |r| r.attributes['timestamp'] }
           end
 
           data
