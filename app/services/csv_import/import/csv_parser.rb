@@ -3,9 +3,7 @@ module CsvImport
     class CsvParser
       class << self
         def parse(work_packages_path)
-          data = Hash.new do |h, k|
-            h[k] = []
-          end
+          records = ::CsvImport::Import::Records.new
 
           CSV.foreach(work_packages_path, headers: true) do |wp_data|
             attributes = normalize_attributes(wp_data.to_h)
@@ -13,14 +11,12 @@ module CsvImport
             attributes['attachments'] = parse_multi_values(attributes['attachments'])
             attributes['related to'] = parse_multi_values(attributes['related to'])
 
-            data[attributes['id'].strip] << ::CsvImport::Import::Record.new(attributes)
+            records.add(::CsvImport::Import::Record.new(attributes))
           end
 
-          data.each_key do |key|
-            data[key] = data[key].sort_by { |r| r.data['timestamp'] }
-          end
+          records.sort
 
-          data
+          records
         end
 
         private
@@ -28,8 +24,8 @@ module CsvImport
         def normalize_attributes(csv_hash)
           csv_hash
             .map do |key, value|
-            [wp_attribute(key.downcase.strip), value]
-          end
+              [wp_attribute(key.downcase.strip), value]
+            end
             .to_h
         end
 

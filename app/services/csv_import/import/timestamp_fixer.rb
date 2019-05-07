@@ -10,7 +10,7 @@ module CsvImport
           fix_work_package_timestamp(parsed_time, work_package)
           fix_work_package_journal_timestamp(parsed_time, work_package)
 
-          attachments = record.attachments
+          attachments = record.attachments.reject(&:destroyed?)
 
           fix_attachment_timestamp(parsed_time, attachments)
           fix_attachment_journal_timestamp(parsed_time, attachments)

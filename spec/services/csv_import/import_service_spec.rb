@@ -220,6 +220,23 @@ describe CsvImport::ImportService do
       .to eql work_package2
   end
 
+  it 'returns the created/updated models in the results' do
+    expect(call.result.select { |r| r.is_a?(WorkPackage) }.length)
+      .to eql(4)
+
+    expect(call.result.select { |r| r.is_a?(Attachment) }.length)
+      .to eql(4)
+
+    expect(call.result.select { |r| r.is_a?(Attachment) }.select(&:destroyed?).length)
+      .to eql(1)
+
+    expect(call.result.select { |r| r.is_a?(Relation) }.length)
+      .to eql(1)
+
+    expect(call.result.length)
+      .to eql(9)
+  end
+
   it 'does not send mails' do
     # because querying for ActionMailer::Base.deliveries does not work somehow
 
