@@ -112,6 +112,9 @@ describe CsvImport::ImportService do
       .to eql 2
 
     work_package = WorkPackage.first
+    work_package2 = WorkPackage.last
+
+    # first work package
     expect(work_package.author_id)
       .to eql(user1.id)
 
@@ -141,28 +144,19 @@ describe CsvImport::ImportService do
     expect(work_package.updated_at)
       .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
 
+    # second work package
+
+    expect(work_package2.subject)
+      .to eql("Other newer subject")
+
+    expect(work_package2.created_at)
+      .to eql(DateTime.parse("2019-01-10T12:20:32ZV").utc)
+    expect(work_package2.updated_at)
+      .to eql(DateTime.parse("2019-01-11T12:20:32ZV").utc)
+
+    # first work package attachments
+
     expect(work_package.attachments.map(&:filename))
-      .to match_array([png_attachment.filename, doc_attachment.filename])
-
-    expect(work_package.journals.length)
-      .to eql(2)
-
-    expect(work_package.journals.first.user)
-      .to eql(user1)
-
-    expect(work_package.journals.first.created_at)
-      .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
-
-    expect(work_package.journals.last.user)
-      .to eql(user1)
-
-    expect(work_package.journals.last.created_at)
-      .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
-
-    expect(work_package.journals.first.attachable_journals.map(&:filename))
-      .to match_array([pdf_attachment.filename, png_attachment.filename])
-
-    expect(work_package.journals.last.attachable_journals.map(&:filename))
       .to match_array([png_attachment.filename, doc_attachment.filename])
 
     linked_png_attachment = work_package.attachments.detect { |a| a.filename == png_attachment.filename }
@@ -187,6 +181,30 @@ describe CsvImport::ImportService do
     expect(linked_doc_attachment.journals.first.created_at)
       .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
 
+    # first work package journals
+    expect(work_package.journals.length)
+      .to eql(2)
+
+    expect(work_package.journals.first.user)
+      .to eql(user1)
+
+    expect(work_package.journals.first.created_at)
+      .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
+
+    expect(work_package.journals.last.user)
+      .to eql(user1)
+
+    expect(work_package.journals.last.created_at)
+      .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
+
+    expect(work_package.journals.first.attachable_journals.map(&:filename))
+      .to match_array([pdf_attachment.filename, png_attachment.filename])
+
+    expect(work_package.journals.last.attachable_journals.map(&:filename))
+      .to match_array([png_attachment.filename, doc_attachment.filename])
+
+    # Relations
+
     expect(work_package.relations.direct.length)
       .to eql 1
 
@@ -197,8 +215,6 @@ describe CsvImport::ImportService do
 
     expect(relation.from)
       .to eql work_package
-
-    work_package2 = WorkPackage.last
 
     expect(relation.to)
       .to eql work_package2

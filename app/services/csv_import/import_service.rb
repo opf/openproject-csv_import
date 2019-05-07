@@ -34,9 +34,7 @@ module CsvImport
       result = ServiceResult.new success: true
 
       data.each do |_, records|
-        ordered_records = records.sort_by { |r| r['timestamp'] }
-
-        ordered_records.each do |record|
+        records.each do |record|
           call = import_work_package(record)
 
           ::CsvImport::Import::TimestampFixer.fix(record, call.result)
@@ -52,9 +50,7 @@ module CsvImport
       result = ServiceResult.new success: true
 
       data.each do |_, records|
-        ordered_records = records.sort_by { |r| r['timestamp'] }
-
-        last_record = ordered_records.last
+        last_record = records.last
 
         call = import_relations(last_record)
 

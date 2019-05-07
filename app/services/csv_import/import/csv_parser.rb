@@ -16,6 +16,10 @@ module CsvImport
             data[attributes['id'].strip] << attributes
           end
 
+          data.each_key do |key|
+            data[key] = data[key].sort_by { |r| r['timestamp'] }
+          end
+
           data
         end
 
