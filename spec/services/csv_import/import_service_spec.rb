@@ -248,4 +248,32 @@ describe CsvImport::ImportService do
     expect(BaseMailer.perform_deliveries)
       .to be_truthy
   end
+
+  context 'on a missing attachment' do
+    before do
+      doc_attachment.destroy
+    end
+
+    it 'is failure' do
+      expect(call)
+        .to be_failure
+    end
+
+    it 'does not leave traces in the db' do
+      call
+
+      expect(WorkPackage.count)
+        .to eql 0
+
+      # Leaves the attachments uploaded to be attached on imported work packages
+      expect(Attachment.count)
+        .to eql 2
+
+      expect(Relation.count)
+        .to eql 0
+
+      expect(Journal.count)
+        .to eql 2
+    end
+  end
 end

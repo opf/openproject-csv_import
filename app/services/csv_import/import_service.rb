@@ -17,14 +17,22 @@ module CsvImport
     def import(work_packages_path)
       records = parse(work_packages_path)
 
+      process(records)
+
+      if records.valid?
+        ServiceResult.new(success: true, result: records.results)
+      else
+        cleanup_on_failure(records)
+
+        records.first_invalid.failure_call
+      end
+    end
+
+    def process(records)
       process_work_packages(records)
 
-      records.first_failure_or do
+      if records.valid?
         process_relations(records)
-
-        records.first_failure_or do
-          ServiceResult.new(success: true, result: records.results)
-        end
       end
     end
 
@@ -36,12 +44,28 @@ module CsvImport
       records.each do |record|
         record.wp_call = import_work_package(record)
 
-        ::CsvImport::Import::TimestampFixer.fix(record)
+        fix_timestamp(record)
       end
     end
 
     def process_relations(records)
       records.each_last(&method(:import_relations))
+    end
+
+    def cleanup_on_failure(records)
+      records.results.select { |r| r.is_a?(WorkPackage) }.each do |work_package|
+        begin
+          WorkPackages::DestroyService
+          .new(user: user, work_package: work_package)
+          .call
+        rescue ActiveRecord::StaleObjectError
+          # nothing to do as it has apparently been destroyed already
+        end
+      end
+    end
+
+    def fix_timestamp(record)
+      ::CsvImport::Import::TimestampFixer.fix(record)
     end
 
     def import_work_package(record)

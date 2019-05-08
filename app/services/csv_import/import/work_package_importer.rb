@@ -60,14 +60,17 @@ module CsvImport
           attachments_to_create = names - work_package.attachments.map(&:filename)
 
           attachments = Attachment
-                          .where(container_id: -1, container_type: nil)
-                          .where(file: attachments_to_create)
+                        .where(container_id: -1, container_type: nil)
+                        .where(file: attachments_to_create)
+                        .group_by(&:filename)
 
-          attachments.map do |attachment|
-            file = attachment.file
+          attachments_to_create.map do |name|
+            file = attachments[name]&.first&.file
 
-            work_package.attachments.build(file: file,
-                                           author: find_user(attributes))
+            attachment_attributes = { author: find_user(attributes) }
+            attachment_attributes[:file] = file if file
+
+            work_package.attachments.build(attachment_attributes)
           end
         end
 

@@ -23,8 +23,6 @@ module API
 
                   attachment.save!
 
-                  #attachment.update_columns(container_id: -1)
-
                   attachment
                 end
               end

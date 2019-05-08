@@ -7,6 +7,10 @@ module CsvImport
 
           CSV.foreach(work_packages_path, headers: true) do |wp_data|
             attributes = normalize_attributes(wp_data.to_h)
+
+            # Jump empty lines
+            next if attributes.compact.empty?
+
             attributes['timestamp'] = DateTime.parse(attributes['timestamp'])
             attributes['attachments'] = parse_multi_values(attributes['attachments'])
             attributes['related to'] = parse_multi_values(attributes['related to'])

@@ -37,7 +37,7 @@ module CsvImport
       end
 
       def failure_call
-        call.detect(&:failure?)
+        calls.detect(&:failure?)
       end
 
       def calls

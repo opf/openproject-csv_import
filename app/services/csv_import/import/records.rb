@@ -49,6 +49,10 @@ module CsvImport
         invalid
       end
 
+      def valid?
+        first_invalid.nil?
+      end
+
       def first_failure_or
         if (invalid = first_invalid)
           invalid.failure_call
