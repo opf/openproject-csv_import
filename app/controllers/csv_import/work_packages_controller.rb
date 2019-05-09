@@ -1,5 +1,5 @@
 module CsvImport
-  class ImportsController < ApplicationController
+  class WorkPackagesController < ApplicationController
     before_action :require_admin
 
     def show

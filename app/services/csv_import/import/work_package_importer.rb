@@ -78,9 +78,12 @@ module CsvImport
                         .group_by(&:filename)
 
           attachments_to_create.map do |name|
-            if attachments[name]
+            file = find_template_file(attachments, name)
+
+            if file
               user = find_user(attributes)
-              build_attachment(work_package, attachments[name].first.file, user)
+
+              build_attachment(work_package, file, user)
             else
               failure_result("The attachment '#{name}' does not exist.")
             end
@@ -106,6 +109,18 @@ module CsvImport
             raise UserNotFoundError, id
           else
             user
+          end
+        end
+
+        def find_template_file(candidates, name)
+          return unless candidates[name]
+
+          template = candidates[name].first
+
+          if template.file.is_a?(FogFileUploader)
+            template.diskfile
+          else
+            template.file
           end
         end
       end

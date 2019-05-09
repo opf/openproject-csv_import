@@ -136,6 +136,12 @@ describe CsvImport::ImportService do
     expect(work_package.priority_id)
       .to eql(priority1.id)
 
+    expect(work_package.start_date)
+      .to eql Date.parse("2018-12-29T")
+
+    expect(work_package.due_date)
+      .to eql Date.parse("2019-04-11T")
+
     expect(work_package.send(:"custom_field_#{custom_field5.id}"))
       .to eql(custom_option1.value)
 
@@ -369,6 +375,29 @@ describe CsvImport::ImportService do
                          "'2019-0502T12:19:32Z' is not an ISO 8601 compatible timestamp.",
                          "'2019-05a02T12:20:32Z' is not an ISO 8601 compatible timestamp.",
                          "'2019/01/11T12:20:32ZV' is not an ISO 8601 compatible timestamp."]
+    end
+  end
+
+  context 'on faulty project' do
+    let!(:project1) do
+      FactoryBot.create(:project, id: 5).tap do |p|
+        p.types = [type]
+        p.work_package_custom_fields = [custom_field5]
+      end
+    end
+
+    it_behaves_like 'import failure'
+
+    it 'reports the error' do
+      expect(call.errors.length)
+        .to eql 2
+
+      expect(call.errors.map(&:line))
+        .to match_array [1,4]
+
+      expect(call.errors.map(&:messages).flatten.uniq)
+        .to match_array ["Fixed version is not set to one of the allowed values.",
+                         "Project can't be blank."]
     end
   end
 end
