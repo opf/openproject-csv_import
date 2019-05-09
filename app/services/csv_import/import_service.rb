@@ -42,10 +42,8 @@ module CsvImport
 
     def process_work_packages(records)
       records.each_with_break do |record|
-        import_work_package(record)
-
+        import_work_package(record) unless record.invalid?
         fix_timestamp(record) unless record.invalid?
-
         record.invalid?
       end
     end

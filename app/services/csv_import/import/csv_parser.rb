@@ -1,6 +1,8 @@
 module CsvImport
   module Import
     class CsvParser
+      extend ServiceErrorMixin
+
       class << self
         def parse(work_packages_path)
           records = ::CsvImport::Import::Records.new
@@ -10,16 +12,7 @@ module CsvImport
           CSV.foreach(work_packages_path, headers: true) do |wp_data|
             line += 1
 
-            attributes = normalize_attributes(wp_data.to_h)
-
-            # Jump empty lines
-            next if attributes.compact.empty?
-
-            attributes['timestamp'] = DateTime.parse(attributes['timestamp'])
-            attributes['attachments'] = parse_multi_values(attributes['attachments'])
-            attributes['related to'] = parse_multi_values(attributes['related to'])
-
-            records.add(::CsvImport::Import::Record.new(line, attributes))
+            parse_line(records, wp_data, line)
           end
 
           records.sort
@@ -29,12 +22,32 @@ module CsvImport
 
         private
 
+        def parse_line(records, wp_data, line)
+          attributes = normalize_attributes(wp_data.to_h)
+
+          # Jump empty lines
+          return if attributes.compact.empty?
+
+          record = ::CsvImport::Import::Record.new(line, attributes)
+          records.add(record)
+
+          coerce_attributes(record)
+        end
+
         def normalize_attributes(csv_hash)
           csv_hash
             .map do |key, value|
               [wp_attribute(key.downcase.strip), value]
             end
             .to_h
+        end
+
+        def coerce_attributes(record)
+          record.data['timestamp'] = DateTime.iso8601(record.data['timestamp'])
+          record.data['attachments'] = parse_multi_values(record.data['attachments'])
+          record.data['related to'] = parse_multi_values(record.data['related to'])
+        rescue ArgumentError
+          record.wp_call = failure_result("'#{record.data['timestamp']}' is not an ISO 8601 compatible timestamp.")
         end
 
         def wp_attribute(key)

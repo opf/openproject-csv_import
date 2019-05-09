@@ -7,6 +7,8 @@ module CsvImport
     end
 
     class WorkPackageImporter
+      extend ServiceErrorMixin
+
       class << self
         def import(record)
           if record.import_id
@@ -105,14 +107,6 @@ module CsvImport
           else
             user
           end
-        end
-
-        def failure_result(message)
-          result = ServiceResult.new success: false
-
-          result.errors.add(:base, message)
-
-          result
         end
       end
     end

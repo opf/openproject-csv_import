@@ -351,4 +351,24 @@ describe CsvImport::ImportService do
         .to match_array ["The user with the id 5 does not exist"]
     end
   end
+
+  context 'on faulty timestamps' do
+    let(:work_packages_path) { File.join(File.dirname(__FILE__), '../../fixtures/invalid_timestamp_wp.csv') }
+
+    it_behaves_like 'import failure'
+
+    it 'reports the error' do
+      expect(call.errors.length)
+        .to eql 4
+
+      expect(call.errors.map(&:line))
+        .to match_array [1,2,3,4]
+
+      expect(call.errors.map(&:messages).flatten.uniq)
+        .to match_array ["'2019-01-10T12:ab:32ZV' is not an ISO 8601 compatible timestamp.",
+                         "'2019-0502T12:19:32Z' is not an ISO 8601 compatible timestamp.",
+                         "'2019-05a02T12:20:32Z' is not an ISO 8601 compatible timestamp.",
+                         "'2019/01/11T12:20:32ZV' is not an ISO 8601 compatible timestamp."]
+    end
+  end
 end
