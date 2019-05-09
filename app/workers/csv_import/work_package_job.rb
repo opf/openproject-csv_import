@@ -1,5 +1,5 @@
 module CsvImport
-  class ImportJob < ApplicationJob
+  class WorkPackageJob < ApplicationJob
     def initialize(user_id:, work_package_attachment_id:)
       self.user_id = user_id
       self.work_package_attachment_id = work_package_attachment_id
