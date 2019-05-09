@@ -136,6 +136,9 @@ describe CsvImport::ImportService do
     expect(work_package.priority_id)
       .to eql(priority1.id)
 
+    expect(work_package.assigned_to_id)
+      .to be_nil
+
     expect(work_package.start_date)
       .to eql Date.parse("2018-12-29T")
 
@@ -154,6 +157,9 @@ describe CsvImport::ImportService do
 
     expect(work_package2.subject)
       .to eql("Other newer subject")
+
+    expect(work_package2.assigned_to_id)
+      .to eql(user1.id)
 
     expect(work_package2.created_at)
       .to eql(DateTime.parse("2019-01-10T12:20:32ZV").utc)
