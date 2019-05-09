@@ -1,5 +1,11 @@
 module CsvImport
   module Import
+    class UserNotFoundError < StandardError
+      def initialize(id)
+        super("The user with the id #{id} does not exist")
+      end
+    end
+
     class WorkPackageImporter
       class << self
         def import(record)
@@ -8,23 +14,25 @@ module CsvImport
           else
             create_work_package(record)
           end
+        rescue UserNotFoundError => e
+          record.wp_call = failure_result(e.message)
         end
 
         private
 
         def create_work_package(record)
-          modify_work_package(record, WorkPackage.new) do |user, work_package, attributes|
+          modify_work_package(record, WorkPackage.new) do |work_package, attributes|
             WorkPackages::CreateService
-              .new(user: user)
+              .new(user: find_user(attributes))
               .call(attributes: work_package_attributes(attributes),
                     work_package: work_package)
           end
         end
 
         def update_work_package(record)
-          modify_work_package(record, WorkPackage.find(record.import_id)) do |user, work_package, attributes|
+          modify_work_package(record, WorkPackage.find(record.import_id)) do |work_package, attributes|
             WorkPackages::UpdateService
-              .new(user: user,
+              .new(user: find_user(attributes),
                    work_package: work_package)
               .call(attributes: work_package_attributes(attributes))
           end
@@ -33,24 +41,12 @@ module CsvImport
         def modify_work_package(record, work_package)
           attributes = record.data
 
-          user = find_user(attributes)
+          record.attachment_calls = attach(work_package, attributes)
 
-          if user.nil?
-            result = ServiceResult.new success: false
-
-            result.errors.add(:base, "The user with the id #{attributes['user']} does not exist")
-            record.wp_call = result
-            return
-          end
-
-          record.attachment_calls = attach(user, work_package, attributes)
-
-          if record.attachments.all? { |a| a.errors.empty? }
-            record.wp_call = yield user, work_package, attributes
-          end
+          record.wp_call = yield work_package, attributes unless record.invalid?
         end
 
-        def attach(user, work_package, attributes)
+        def attach(work_package, attributes)
           names = attributes['attachments']
 
           return [] if names.empty?
@@ -59,7 +55,7 @@ module CsvImport
 
           work_package.attachments.reload if modified_attachments.any?
 
-          modified_attachments + create_new_attachments(user, work_package, names, attributes)
+          modified_attachments + create_new_attachments(work_package, names, attributes)
         end
 
         def destroy_outdated_attachments(work_package, names)
@@ -71,7 +67,7 @@ module CsvImport
           end
         end
 
-        def create_new_attachments(user, work_package, names, attributes)
+        def create_new_attachments(work_package, names, attributes)
           attachments_to_create = names - work_package.attachments.map(&:filename)
 
           attachments = Attachment
@@ -81,9 +77,10 @@ module CsvImport
 
           attachments_to_create.map do |name|
             if attachments[name]
+              user = find_user(attributes)
               build_attachment(work_package, attachments[name].first.file, user)
             else
-              non_existing_attachment(work_package, name, user)
+              failure_result("The attachment '#{name}' does not exist.")
             end
           end
         end
@@ -95,21 +92,27 @@ module CsvImport
           ServiceResult.new success: true, result: attachment
         end
 
-        def non_existing_attachment(work_package, name, user)
-          attachment = Attachment.new(container: work_package,
-                                      author: user)
-
-          attachment.errors.add(:base, "The attachment '#{name}' does not exist.")
-
-          ServiceResult.new success: false, result: attachment
-        end
-
         def work_package_attributes(attributes)
           attributes.except('timestamp', 'id', 'attachments')
         end
 
         def find_user(attributes)
-          User.find_by(id: attributes['user'])
+          id = attributes['user']
+          user = User.find_by(id: id)
+
+          if user.nil?
+            raise UserNotFoundError, id
+          else
+            user
+          end
+        end
+
+        def failure_result(message)
+          result = ServiceResult.new success: false
+
+          result.errors.add(:base, message)
+
+          result
         end
       end
     end

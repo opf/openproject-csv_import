@@ -294,7 +294,7 @@ describe CsvImport::ImportService do
     end
   end
 
-  context 'on a faulty workflow' do
+  context 'on a faulty status transition' do
     before do
       workflows.destroy
     end
