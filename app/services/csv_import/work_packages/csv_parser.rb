@@ -1,11 +1,11 @@
 module CsvImport
-  module Import
+  module WorkPackages
     class CsvParser
       extend ServiceErrorMixin
 
       class << self
         def parse(work_packages_path)
-          records = ::CsvImport::Import::Records.new
+          records = ::CsvImport::WorkPackages::Records.new
 
           line = 0
 
@@ -28,7 +28,7 @@ module CsvImport
           # Jump empty lines
           return if attributes.compact.empty?
 
-          record = ::CsvImport::Import::Record.new(line, attributes)
+          record = ::CsvImport::WorkPackages::Record.new(line, attributes)
           records.add(record)
 
           coerce_attributes(record)
@@ -57,7 +57,7 @@ module CsvImport
 
         def wp_attribute_map
           @wp_attribute_map ||= begin
-            associations = WorkPackage
+            associations = ::WorkPackage
                              .reflect_on_all_associations
                              .map { |a| [a.name.to_s, a.foreign_key] }
             cfs = WorkPackageCustomField

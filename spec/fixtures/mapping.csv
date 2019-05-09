@@ -1,6 +1,7 @@
-Process Id,Aspect
-CF 1 - 1,3
-CF 1 - 2,4
-CF 1 - 3,16
-CF 2 - 1,4
-CF 2 - 2,5
+Process Id CF,Process Id Option,Aspect Option
+First PID,PKMSDIAG001,First aspect
+First PID,PKMSDIAG002,Second aspect
+First PID,PKMSDIAG003,Third aspect
+Second PID,SPABEDF001,First aspect
+Second PID,"SPABEDF002
+",Fourth aspect

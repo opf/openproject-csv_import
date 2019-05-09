@@ -1,5 +1,5 @@
 module CsvImport
-  module Import
+  module WorkPackages
     class TimestampFixer
       class << self
         def fix(record)

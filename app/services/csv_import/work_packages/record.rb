@@ -1,5 +1,5 @@
 module CsvImport
-  module Import
+  module WorkPackages
     class Record
       attr_accessor :data,
                     :line,

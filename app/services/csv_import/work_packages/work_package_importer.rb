@@ -1,5 +1,5 @@
 module CsvImport
-  module Import
+  module WorkPackages
     class UserNotFoundError < StandardError
       def initialize(id)
         super("The user with the id #{id} does not exist")
@@ -23,8 +23,8 @@ module CsvImport
         private
 
         def create_work_package(record)
-          modify_work_package(record, WorkPackage.new) do |work_package, attributes|
-            WorkPackages::CreateService
+          modify_work_package(record, ::WorkPackage.new) do |work_package, attributes|
+            ::WorkPackages::CreateService
               .new(user: find_user(attributes))
               .call(attributes: work_package_attributes(attributes),
                     work_package: work_package)
@@ -32,8 +32,8 @@ module CsvImport
         end
 
         def update_work_package(record)
-          modify_work_package(record, WorkPackage.find(record.import_id)) do |work_package, attributes|
-            WorkPackages::UpdateService
+          modify_work_package(record, ::WorkPackage.find(record.import_id)) do |work_package, attributes|
+            ::WorkPackages::UpdateService
               .new(user: find_user(attributes),
                    work_package: work_package)
               .call(attributes: work_package_attributes(attributes))

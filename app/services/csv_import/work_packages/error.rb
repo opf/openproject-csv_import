@@ -1,5 +1,5 @@
 module CsvImport
-  module Import
+  module WorkPackages
     class Error
       attr_accessor :line,
                     :messages

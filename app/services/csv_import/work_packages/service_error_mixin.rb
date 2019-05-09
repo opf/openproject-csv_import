@@ -1,5 +1,5 @@
 module CsvImport
-  module Import
+  module WorkPackages
     module ServiceErrorMixin
       def failure_result(message)
         result = ServiceResult.new success: false

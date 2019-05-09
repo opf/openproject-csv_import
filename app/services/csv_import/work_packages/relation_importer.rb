@@ -1,5 +1,5 @@
 module CsvImport
-  module Import
+  module WorkPackages
     class RelationImporter
       class << self
         def import(record)

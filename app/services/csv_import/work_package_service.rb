@@ -1,5 +1,5 @@
 module CsvImport
-  class ImportService
+  class WorkPackageService
     def initialize(user)
       self.user = user
     end
@@ -37,7 +37,7 @@ module CsvImport
     end
 
     def parse(work_packages_path)
-      ::CsvImport::Import::CsvParser.parse(work_packages_path)
+      ::CsvImport::WorkPackages::CsvParser.parse(work_packages_path)
     end
 
     def process_work_packages(records)
@@ -55,9 +55,9 @@ module CsvImport
     def cleanup_on_failure(records)
       records.results.select { |r| r.is_a?(WorkPackage) }.each do |work_package|
         begin
-          WorkPackages::DestroyService
-          .new(user: user, work_package: work_package)
-          .call
+          ::WorkPackages::DestroyService
+            .new(user: user, work_package: work_package)
+            .call
         rescue ActiveRecord::StaleObjectError
           # nothing to do as it has apparently been destroyed already
         end
@@ -70,7 +70,7 @@ module CsvImport
 
     def failure_result(records)
       errors = records.invalids.map do |i|
-                 CsvImport::Import::Error.new(i.line, i.failure_call.errors.full_messages)
+                 CsvImport::WorkPackages::Error.new(i.line, i.failure_call.errors.full_messages)
                end
 
       ServiceResult.new(success: false,
@@ -79,15 +79,15 @@ module CsvImport
     end
 
     def fix_timestamp(record)
-      ::CsvImport::Import::TimestampFixer.fix(record)
+      ::CsvImport::WorkPackages::TimestampFixer.fix(record)
     end
 
     def import_work_package(record)
-      ::CsvImport::Import::WorkPackageImporter.import(record)
+      ::CsvImport::WorkPackages::WorkPackageImporter.import(record)
     end
 
     def import_relations(record)
-      ::CsvImport::Import::RelationImporter.import(record)
+      ::CsvImport::WorkPackages::RelationImporter.import(record)
     end
   end
 end

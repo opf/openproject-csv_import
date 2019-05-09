@@ -1,5 +1,5 @@
 module CsvImport
-  module Import
+  module WorkPackages
     class Records
       def add(record)
         record.work_packages_map = work_packages_map

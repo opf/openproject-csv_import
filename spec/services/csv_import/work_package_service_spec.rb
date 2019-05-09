@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe CsvImport::ImportService do
+describe CsvImport::WorkPackageService do
   let(:work_packages_path) { File.join(File.dirname(__FILE__), '../../fixtures/work_packages.csv') }
   let!(:role) do
     FactoryBot.create(:role, permissions: %i(view_work_packages
