@@ -249,10 +249,8 @@ describe CsvImport::ImportService do
       .to be_truthy
   end
 
-  context 'on a missing attachment' do
-    before do
-      doc_attachment.destroy
-    end
+  shared_examples_for 'import failure' do
+    let!(:attachment_count) { Attachment.count}
 
     it 'is failure' do
       expect(call)
@@ -267,13 +265,90 @@ describe CsvImport::ImportService do
 
       # Leaves the attachments uploaded to be attached on imported work packages
       expect(Attachment.count)
-        .to eql 2
+        .to eql attachment_count
 
       expect(Relation.count)
         .to eql 0
 
       expect(Journal.count)
+        .to eql attachment_count
+    end
+  end
+
+  context 'on a missing attachment' do
+    before do
+      doc_attachment.destroy
+    end
+
+    it_behaves_like 'import failure'
+
+    it 'reports the error' do
+      expect(call.errors.length)
+        .to eql 1
+
+      expect(call.errors.first.line)
         .to eql 2
+
+      expect(call.errors.first.messages)
+        .to match_array ["The attachment '#{doc_attachment.filename}' does not exist."]
+    end
+  end
+
+  context 'on a faulty workflow' do
+    before do
+      workflows.destroy
+    end
+
+    it_behaves_like 'import failure'
+
+    it 'reports the error' do
+      expect(call.errors.length)
+        .to eql 1
+
+      expect(call.errors.first.line)
+        .to eql 2
+
+      expect(call.errors.first.messages)
+        .to match_array ["Status is invalid because no valid transition exists from old to new status for the current user's roles."]
+    end
+  end
+
+  context 'on a faulty priority' do
+    let!(:priority1) { FactoryBot.create(:priority, id: 5) }
+
+    it_behaves_like 'import failure'
+
+    it 'reports the error' do
+      expect(call.errors.length)
+        .to eql 2
+
+      expect(call.errors.map(&:line))
+        .to match_array [2,4]
+
+      expect(call.errors.map(&:messages).flatten.uniq)
+        .to match_array ["Priority can't be blank."]
+    end
+  end
+
+  context 'on a faulty user' do
+    let!(:user1) do
+      FactoryBot.create(:user,
+                        id: 8,
+                        member_in_project: project1,
+                        member_through_role: role)
+    end
+
+    it_behaves_like 'import failure'
+
+    it 'reports the error' do
+      expect(call.errors.length)
+        .to eql 2
+
+      expect(call.errors.map(&:line))
+        .to match_array [1,4]
+
+      expect(call.errors.map(&:messages).flatten.uniq)
+        .to match_array ["The user with the id 5 does not exist"]
     end
   end
 end

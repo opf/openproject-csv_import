@@ -20,11 +20,11 @@ module CsvImport
       process(records)
 
       if records.valid?
-        ServiceResult.new(success: true, result: records.results)
+        success_result(records)
       else
         cleanup_on_failure(records)
 
-        records.first_invalid.failure_call
+        failure_result(records)
       end
     end
 
@@ -41,10 +41,12 @@ module CsvImport
     end
 
     def process_work_packages(records)
-      records.each do |record|
-        record.wp_call = import_work_package(record)
+      records.each_with_break do |record|
+        import_work_package(record)
 
-        fix_timestamp(record)
+        fix_timestamp(record) unless record.invalid?
+
+        record.invalid?
       end
     end
 
@@ -62,6 +64,20 @@ module CsvImport
           # nothing to do as it has apparently been destroyed already
         end
       end
+    end
+
+    def success_result(records)
+      ServiceResult.new(success: true, result: records.results)
+    end
+
+    def failure_result(records)
+      errors = records.invalids.map do |i|
+                 CsvImport::Import::Error.new(i.line, i.failure_call.errors.full_messages)
+               end
+
+      ServiceResult.new(success: false,
+                        result: records.results,
+                        errors: errors)
     end
 
     def fix_timestamp(record)

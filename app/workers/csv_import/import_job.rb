@@ -13,7 +13,7 @@ module CsvImport
       if call.success?
         CsvImport::Mailer.success(user, call.result).deliver_now
       else
-        CsvImport::Mailer.failure(user, call.result).deliver_now
+        CsvImport::Mailer.failure(user, call.errors).deliver_now
       end
     end
 

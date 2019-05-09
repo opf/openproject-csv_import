@@ -5,10 +5,10 @@ module CsvImport
         def fix(record)
           parsed_time = record.timestamp
 
-          work_package = record.work_package
-
-          fix_work_package_timestamp(parsed_time, work_package)
-          fix_work_package_journal_timestamp(parsed_time, work_package)
+          if (work_package = record.work_package)
+            fix_work_package_timestamp(parsed_time, work_package)
+            fix_work_package_journal_timestamp(parsed_time, work_package)
+          end
 
           attachments = record.attachments.reject(&:destroyed?).reject(&:new_record?)
 

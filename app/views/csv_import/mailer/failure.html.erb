@@ -1,0 +1,12 @@
+<% failures.each do |failure| %>
+  <div>
+    Failed to import line <%= failure.line %>:
+
+    <ul>
+      <% failure.messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+    </ul>
+
+  </div>
+<% end %>

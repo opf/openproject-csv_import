@@ -2,12 +2,14 @@ module CsvImport
   module Import
     class Record
       attr_accessor :data,
+                    :line,
                     :wp_call,
                     :relation_calls,
-                    :attachments,
+                    :attachment_calls,
                     :work_packages_map
 
-      def initialize(data)
+      def initialize(line, data)
+        self.line = line
         self.data = data
       end
 
@@ -24,12 +26,16 @@ module CsvImport
       end
 
       def wp_call=(call)
-        work_packages_map[data_id] = call.result.id
+        work_packages_map[data_id] = call.result&.id
         @wp_call = call
       end
 
       def work_package
-        wp_call.result
+        wp_call&.result
+      end
+
+      def attachments
+        attachment_calls&.map(&:result)
       end
 
       def invalid?
@@ -41,11 +47,11 @@ module CsvImport
       end
 
       def calls
-        ([wp_call] + (relation_calls || [])).compact
+        ([wp_call] + (attachment_calls || []) + (relation_calls || [])).compact
       end
 
       def results
-        calls.map(&:result).flatten + (attachments || [])
+        calls.map(&:result).flatten
       end
     end
   end

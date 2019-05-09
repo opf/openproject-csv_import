@@ -5,7 +5,11 @@ module CsvImport
         def parse(work_packages_path)
           records = ::CsvImport::Import::Records.new
 
+          line = 0
+
           CSV.foreach(work_packages_path, headers: true) do |wp_data|
+            line += 1
+
             attributes = normalize_attributes(wp_data.to_h)
 
             # Jump empty lines
@@ -15,7 +19,7 @@ module CsvImport
             attributes['attachments'] = parse_multi_values(attributes['attachments'])
             attributes['related to'] = parse_multi_values(attributes['related to'])
 
-            records.add(::CsvImport::Import::Record.new(attributes))
+            records.add(::CsvImport::Import::Record.new(line, attributes))
           end
 
           records.sort

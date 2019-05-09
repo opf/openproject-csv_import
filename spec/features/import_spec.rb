@@ -145,6 +145,16 @@ describe 'importing a csv file', js: true do
 
     expect(mail.subject)
       .to eql("Import completed successfully")
+
+    expect(mail.to)
+      .to match_array [admin.mail]
+
+    expect(mail.body)
+      .to have_content("Work packages: 2")
+    expect(mail.body)
+      .to have_content("Attachments: 0")
+    expect(mail.body)
+      .to have_content("Relations: 1")
   end
 
   it 'fails on import errors' do
@@ -162,5 +172,13 @@ describe 'importing a csv file', js: true do
 
     expect(mail.subject)
       .to eql("Import failed")
+
+    expect(mail.to)
+      .to match_array [admin.mail]
+
+    expect(mail.body)
+      .to have_content("Failed to import line 2:")
+    expect(mail.body)
+      .to have_content("Status is invalid because no valid transition exists from old to new status for the current user's roles.")
   end
 end

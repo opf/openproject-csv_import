@@ -27,6 +27,15 @@ module CsvImport
         end
       end
 
+      def each_with_break
+        records.each do |_, rs|
+          rs.each do |r|
+            skip = yield r
+            break if skip
+          end
+        end
+      end
+
       def each_last
         records.each do |_, rs|
           yield rs.last
@@ -43,10 +52,35 @@ module CsvImport
         each do |record|
           if record.invalid?
             invalid = record
+            break
           end
         end
 
         invalid
+      end
+
+      def map
+        results = []
+
+        each do |record|
+          results << yield(record)
+        end
+
+        results
+      end
+
+      def select
+        results = []
+
+        each do |record|
+          results << record if yield(record)
+        end
+
+        results
+      end
+
+      def invalids
+        select(&:invalid?)
       end
 
       def valid?

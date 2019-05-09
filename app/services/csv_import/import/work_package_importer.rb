@@ -13,18 +13,18 @@ module CsvImport
         private
 
         def create_work_package(record)
-          modify_work_package(record, WorkPackage.new) do |work_package, attributes|
+          modify_work_package(record, WorkPackage.new) do |user, work_package, attributes|
             WorkPackages::CreateService
-              .new(user: find_user(attributes))
+              .new(user: user)
               .call(attributes: work_package_attributes(attributes),
                     work_package: work_package)
           end
         end
 
         def update_work_package(record)
-          modify_work_package(record, WorkPackage.find(record.import_id)) do |work_package, attributes|
+          modify_work_package(record, WorkPackage.find(record.import_id)) do |user, work_package, attributes|
             WorkPackages::UpdateService
-              .new(user: find_user(attributes),
+              .new(user: user,
                    work_package: work_package)
               .call(attributes: work_package_attributes(attributes))
           end
@@ -33,12 +33,24 @@ module CsvImport
         def modify_work_package(record, work_package)
           attributes = record.data
 
-          record.attachments = attach(work_package, attributes)
+          user = find_user(attributes)
 
-          record.wp_call = yield work_package, attributes
+          if user.nil?
+            result = ServiceResult.new success: false
+
+            result.errors.add(:base, "The user with the id #{attributes['user']} does not exist")
+            record.wp_call = result
+            return
+          end
+
+          record.attachment_calls = attach(user, work_package, attributes)
+
+          if record.attachments.all? { |a| a.errors.empty? }
+            record.wp_call = yield user, work_package, attributes
+          end
         end
 
-        def attach(work_package, attributes)
+        def attach(user, work_package, attributes)
           names = attributes['attachments']
 
           return [] if names.empty?
@@ -47,16 +59,19 @@ module CsvImport
 
           work_package.attachments.reload if modified_attachments.any?
 
-          modified_attachments + create_new_attachments(work_package, names, attributes)
+          modified_attachments + create_new_attachments(user, work_package, names, attributes)
         end
 
         def destroy_outdated_attachments(work_package, names)
           attachments_to_delete = work_package.attachments.select { |a| !names.include?(a.filename) }
           attachments_to_delete.each(&:destroy)
-          attachments_to_delete
+
+          attachments_to_delete.map do |attachment|
+            ServiceResult.new success: true, result: attachment
+          end
         end
 
-        def create_new_attachments(work_package, names, attributes)
+        def create_new_attachments(user, work_package, names, attributes)
           attachments_to_create = names - work_package.attachments.map(&:filename)
 
           attachments = Attachment
@@ -65,13 +80,28 @@ module CsvImport
                         .group_by(&:filename)
 
           attachments_to_create.map do |name|
-            file = attachments[name]&.first&.file
-
-            attachment_attributes = { author: find_user(attributes) }
-            attachment_attributes[:file] = file if file
-
-            work_package.attachments.build(attachment_attributes)
+            if attachments[name]
+              build_attachment(work_package, attachments[name].first.file, user)
+            else
+              non_existing_attachment(work_package, name, user)
+            end
           end
+        end
+
+        def build_attachment(work_package, file, user)
+          attachment = work_package.attachments.build({ author: user,
+                                                        file: file })
+
+          ServiceResult.new success: true, result: attachment
+        end
+
+        def non_existing_attachment(work_package, name, user)
+          attachment = Attachment.new(container: work_package,
+                                      author: user)
+
+          attachment.errors.add(:base, "The attachment '#{name}' does not exist.")
+
+          ServiceResult.new success: false, result: attachment
         end
 
         def work_package_attributes(attributes)
@@ -79,7 +109,7 @@ module CsvImport
         end
 
         def find_user(attributes)
-          User.find(attributes['user'])
+          User.find_by(id: attributes['user'])
         end
       end
     end
