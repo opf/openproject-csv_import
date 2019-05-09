@@ -15,6 +15,8 @@ module CsvImport
       else
         CsvImport::Mailer.failure(user, call.errors).deliver_now
       end
+
+      cleanup_csv_file
     end
 
     private
@@ -34,6 +36,10 @@ module CsvImport
       else
         attachment.file.path
       end
+    end
+
+    def cleanup_csv_file
+      Attachment.find(work_package_attachment_id).destroy
     end
   end
 end
