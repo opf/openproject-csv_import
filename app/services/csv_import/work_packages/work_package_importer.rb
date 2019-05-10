@@ -26,7 +26,7 @@ module CsvImport
           modify_work_package(record, ::WorkPackage.new) do |work_package, attributes|
             ::WorkPackages::CreateService
               .new(user: find_user(attributes))
-              .call(attributes: work_package_attributes(attributes),
+              .call(attributes: work_package_attributes(attributes).merge(within_db_process: true),
                     work_package: work_package)
           end
         end
