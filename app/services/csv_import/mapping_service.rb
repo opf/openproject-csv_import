@@ -29,13 +29,7 @@ module CsvImport
           mapping['process id option'].strip
         end
 
-        aspect_cf.custom_options.clear
-
-        options_names.each do |name|
-          process_id_cf.custom_options.build(value: name)
-        end
-
-        process_id_cf.save!
+        update_cf_options(process_id_cf, options_names)
 
         process_id_cf
       end
@@ -48,13 +42,7 @@ module CsvImport
         end
       end.flatten.uniq
 
-      aspect_cf.custom_options.clear
-
-      options_names.each do |name|
-        aspect_cf.custom_options.build(value: name)
-      end
-
-      aspect_cf.save!
+      update_cf_options(aspect_cf, options_names)
     end
 
     def prepare_mapping(by_process_id)
@@ -72,6 +60,24 @@ module CsvImport
       end
 
       result
+    end
+
+    def update_cf_options(cf, options_names)
+      cf.custom_options.each do |co|
+        unless options_names.include?(co.value)
+          co.mark_for_destruction
+        end
+      end
+
+      options_names.each do |name|
+        exists = cf_option(cf, name)
+
+        if exists.nil?
+          cf.custom_options.build(value: name)
+        end
+      end
+
+      cf.save!
     end
 
     def set_setting(process_ids, mapping)
