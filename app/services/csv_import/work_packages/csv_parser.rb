@@ -37,7 +37,7 @@ module CsvImport
         def normalize_attributes(csv_hash)
           csv_hash
             .map do |key, value|
-              [wp_attribute(key.downcase.strip), value]
+              [wp_attribute(key.downcase.strip), value&.strip]
             end
             .to_h
         end
