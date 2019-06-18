@@ -109,10 +109,9 @@ describe CsvImport::WorkPackageService do
     call
 
     expect(WorkPackage.count)
-      .to eql 2
+      .to eql 3
 
-    work_package = WorkPackage.first
-    work_package2 = WorkPackage.last
+    work_package, work_package2, work_package3 = WorkPackage.all
 
     # first work package
     expect(work_package.author_id)
@@ -218,7 +217,7 @@ describe CsvImport::WorkPackageService do
     # Relations
 
     expect(work_package.relations.direct.length)
-      .to eql 1
+      .to eql 2
 
     relation = work_package.relations.direct.first
 
@@ -230,11 +229,22 @@ describe CsvImport::WorkPackageService do
 
     expect(relation.to)
       .to eql work_package2
+
+    relation = work_package.relations.direct.last
+
+    expect(relation.relation_type)
+      .to eql(Relation::TYPE_RELATES)
+
+    expect(relation.from)
+      .to eql work_package
+
+    expect(relation.to)
+      .to eql work_package3
   end
 
   it 'returns the created/updated models in the results' do
     expect(call.result.select { |r| r.is_a?(WorkPackage) }.length)
-      .to eql(4)
+      .to eql(5)
 
     expect(call.result.select { |r| r.is_a?(Attachment) }.length)
       .to eql(4)
@@ -243,10 +253,10 @@ describe CsvImport::WorkPackageService do
       .to eql(1)
 
     expect(call.result.select { |r| r.is_a?(Relation) }.length)
-      .to eql(1)
+      .to eql(2)
 
     expect(call.result.length)
-      .to eql(9)
+      .to eql(11)
   end
 
   it 'does not send mails' do
@@ -332,10 +342,10 @@ describe CsvImport::WorkPackageService do
 
     it 'reports the error' do
       expect(call.errors.length)
-        .to eql 2
+        .to eql 3
 
       expect(call.errors.map(&:line))
-        .to match_array [2,4]
+        .to match_array [2,4,5]
 
       expect(call.errors.map(&:messages).flatten.uniq)
         .to match_array ["Priority can't be blank."]
@@ -354,10 +364,10 @@ describe CsvImport::WorkPackageService do
 
     it 'reports the error' do
       expect(call.errors.length)
-        .to eql 2
+        .to eql 3
 
       expect(call.errors.map(&:line))
-        .to match_array [1,4]
+        .to match_array [1,4,5]
 
       expect(call.errors.map(&:messages).flatten.uniq)
         .to match_array ["The user with the id 5 does not exist"]
@@ -396,10 +406,10 @@ describe CsvImport::WorkPackageService do
 
     it 'reports the error' do
       expect(call.errors.length)
-        .to eql 2
+        .to eql 3
 
       expect(call.errors.map(&:line))
-        .to match_array [1,4]
+        .to match_array [1,4,5]
 
       expect(call.errors.map(&:messages).flatten.uniq)
         .to match_array ["Fixed version is not set to one of the allowed values.",

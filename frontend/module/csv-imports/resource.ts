@@ -30,7 +30,7 @@ export class CsvImportBaseResource extends HalResource {
 
     const promise = Promise.all(_.values(resources));
     promise.then(() => {
-      this.states.forResource(this).putValue(this, 'Attachment uploaded');
+      this.states.forResource(this)!.putValue(this, 'Attachment uploaded');
     });
 
     return promise;
