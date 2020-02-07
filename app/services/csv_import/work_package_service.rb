@@ -55,8 +55,8 @@ module CsvImport
     def cleanup_on_failure(records)
       records.results.select { |r| r.is_a?(WorkPackage) }.each do |work_package|
         begin
-          ::WorkPackages::DestroyService
-            .new(user: user, work_package: work_package)
+          ::WorkPackages::DeleteService
+            .new(user: user, model: work_package)
             .call
         rescue ActiveRecord::StaleObjectError
           # nothing to do as it has apparently been destroyed already

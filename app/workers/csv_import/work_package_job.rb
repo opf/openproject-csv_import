@@ -11,7 +11,7 @@ module CsvImport
         CsvImport::Mailer.failure(user, call.errors).deliver_now
       end
 
-      super
+      super(attachment)
     end
   end
 end

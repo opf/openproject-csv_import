@@ -6,8 +6,8 @@ describe CsvImport::WorkPackageService do
     FactoryBot.create(:role, permissions: %i(view_work_packages
                                              add_work_packages
                                              edit_work_packages
+                                             assign_versions
                                              manage_work_package_relations))
-
   end
   let!(:user1) do
     FactoryBot.create(:user,
@@ -412,8 +412,7 @@ describe CsvImport::WorkPackageService do
         .to match_array [1,4,5]
 
       expect(call.errors.map(&:messages).flatten.uniq)
-        .to match_array ["Fixed version is not set to one of the allowed values.",
-                         "Project can't be blank."]
+        .to match_array ["Project can't be blank."]
     end
   end
 end

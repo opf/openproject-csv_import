@@ -3,6 +3,8 @@ require 'spec_helper'
 require File.join(File.dirname(__FILE__), '../support/pages/csv_import')
 
 describe 'importing a csv file', js: true do
+  include ActiveJob::TestHelper
+
   let(:work_packages_path) do
     path = File.join(File.dirname(__FILE__), '../fixtures/no_attachments_wp.csv')
 
@@ -12,6 +14,7 @@ describe 'importing a csv file', js: true do
     FactoryBot.create(:role, permissions: %i(view_work_packages
                                              add_work_packages
                                              edit_work_packages
+                                             assign_versions
                                              manage_work_package_relations))
 
   end
@@ -126,7 +129,9 @@ describe 'importing a csv file', js: true do
     #expect(page).not_to have_selector('notification-upload-progress')
     #expect(page).to have_selector('.work-package--attachments--filename', text: 'image.png', wait: 5)
 
-    click_button("Import")
+    perform_enqueued_jobs do
+      click_button("Import")
+    end
 
     expect(page)
       .to have_content("Import in progress. You will receive the results by mail.")
