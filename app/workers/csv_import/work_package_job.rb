@@ -1,9 +1,9 @@
 module CsvImport
   class WorkPackageJob < AbstractJob
-    def perform
+    def perform(user, attachment)
       call = CsvImport::WorkPackageService
              .new(user)
-             .call(attachment_path)
+             .call(attachment_path(attachment))
 
       if call.success?
         CsvImport::Mailer.success(user, call.result).deliver_now

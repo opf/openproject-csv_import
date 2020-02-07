@@ -8,8 +8,7 @@ module CsvImport
       work_package_attachment = Attachment.create! file: params[:work_package_file],
                                                    author: current_user
 
-      job = ::CsvImport::WorkPackageJob.new(user_id: current_user.id, attachment_id: work_package_attachment.id)
-      Delayed::Job.enqueue job
+      ::CsvImport::WorkPackageJob.perform_later(current_user, work_package_attachment)
     end
   end
 end
