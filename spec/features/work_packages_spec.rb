@@ -154,12 +154,18 @@ describe 'importing a csv file', js: true do
     expect(mail.to)
       .to match_array [admin.mail]
 
-    expect(mail.body)
+    expect(mail.html_part.body)
       .to have_content("Work packages: 2")
-    expect(mail.body)
+    expect(mail.html_part.body)
       .to have_content("Attachments: 0")
-    expect(mail.body)
+    expect(mail.html_part.body)
       .to have_content("Relations: 1")
+
+    expect(mail.attachments.length)
+      .to eql 1
+
+    expect(CSV.parse(mail.attachments[0].read))
+      .to match_array [["1", WorkPackage.first.id.to_s], ["2", WorkPackage.last.id.to_s]]
   end
 
   it 'fails on import errors' do

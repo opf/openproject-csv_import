@@ -243,20 +243,17 @@ describe CsvImport::WorkPackageService do
   end
 
   it 'returns the created/updated models in the results' do
-    expect(call.result.select { |r| r.is_a?(WorkPackage) }.length)
+    expect(call.result.work_packages.length)
       .to eql(5)
 
-    expect(call.result.select { |r| r.is_a?(Attachment) }.length)
+    expect(call.result.attachments.length)
       .to eql(4)
 
-    expect(call.result.select { |r| r.is_a?(Attachment) }.select(&:destroyed?).length)
+    expect(call.result.attachments.select(&:destroyed?).length)
       .to eql(1)
 
-    expect(call.result.select { |r| r.is_a?(Relation) }.length)
+    expect(call.result.relations.length)
       .to eql(2)
-
-    expect(call.result.length)
-      .to eql(11)
   end
 
   it 'does not send mails' do

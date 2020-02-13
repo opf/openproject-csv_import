@@ -65,7 +65,13 @@ module CsvImport
     end
 
     def success_result(records)
-      ServiceResult.new(success: true, result: records.results)
+      objects_by_type = records.results.group_by(&:class)
+      result = OpenStruct.new(work_packages: objects_by_type[WorkPackage],
+                              relations: objects_by_type[Relation],
+                              attachments: objects_by_type[Attachment],
+                              work_packages_map: records.work_packages_map)
+
+      ServiceResult.new(success: true, result: result)
     end
 
     def failure_result(records)

@@ -2,11 +2,11 @@ module CsvImport
   class Mailer < BaseMailer
 
     def success(user, results)
-      objects_by_type = results.group_by(&:class)
+      counts = OpenStruct.new(work_packages: count_of(:work_packages, results),
+                              relations: count_of(:relations, results),
+                              attachments: count_of(:attachments, results))
 
-      counts = OpenStruct.new(work_packages: count_of(WorkPackage, objects_by_type),
-                              relations: count_of(Relation, objects_by_type),
-                              attachments: count_of(Attachment, objects_by_type))
+      attachments['mapping.csv'] = { mime_type: 'text/csv', content: mapping_file(results.work_packages_map) }
 
       notify(user, 'Import completed successfully', { counts: counts })
     end
@@ -21,14 +21,24 @@ module CsvImport
       User.execute_as user do
         with_locale_for(user) do
           mail to: "\"#{user.name}\" <#{user.mail}>", subject: subject do |format|
-            format.html { render locals: locals }
+            format.html do
+              render locals: locals
+            end
           end
         end
       end
     end
 
-    def count_of(type, map)
-      (map[type] || []).map(&:id).uniq.count
+    def count_of(key, results)
+      (results.send(key) || []).map(&:id).uniq.count
+    end
+
+    def mapping_file(mapping)
+      CSV.generate do |csv|
+        mapping.to_a.each do |x|
+          csv << x
+        end
+      end
     end
   end
 end
