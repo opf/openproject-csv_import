@@ -10,7 +10,7 @@ module CsvImport
           CSV.foreach(file_path, headers: true) do |data|
             record = parse_line(data)
 
-            by_process_name[record['process id cf']] << record
+            by_process_name[record['process_id_cf']] << record
           end
 
           by_process_name
@@ -25,7 +25,13 @@ module CsvImport
         def normalize_attributes(csv_hash)
           csv_hash
             .map do |key, value|
-            [key.downcase.strip, value]
+            if key.match(/process\s*id\s*cf/i)
+              ['process_id_cf', value]
+            elsif key.match(/process\s*id\s*option/i)
+              ['process_id_option', value]
+            elsif key.match(/aspect\s*option/i)
+              ['aspect_option', value]
+            end
           end
           .to_h
         end

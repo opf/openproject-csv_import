@@ -26,7 +26,7 @@ module CsvImport
         end
 
         options_names = mappings.map do |mapping|
-          mapping['process id option'].strip
+          mapping['process_id_option'].strip
         end
 
         update_cf_options(process_id_cf, options_names)
@@ -38,7 +38,7 @@ module CsvImport
     def update_aspect_options(by_process_id)
       options_names = by_process_id.map do |_, mappings|
         mappings.map do |mapping|
-          mapping['aspect option'].strip
+          mapping['aspect_option'].strip
         end
       end.flatten.uniq
 
@@ -52,8 +52,8 @@ module CsvImport
         process_id_cf = CustomField.find_by(name: process_id)
 
         mappings.each do |mapping|
-          process_id_option = cf_option(process_id_cf, mapping['process id option'])
-          aspect_option = cf_option(aspect_cf, mapping['aspect option'])
+          process_id_option = cf_option(process_id_cf, mapping['process_id_option'])
+          aspect_option = cf_option(aspect_cf, mapping['aspect_option'])
 
           result[process_id_option.id.to_s] = aspect_option.id.to_s
         end
