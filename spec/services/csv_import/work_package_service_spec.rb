@@ -126,7 +126,7 @@ describe CsvImport::WorkPackageService do
     expect(work_package.project_id)
       .to eql(project1.id)
 
-    expect(work_package.fixed_version_id)
+    expect(work_package.version_id)
       .to eql(version2.id)
 
     expect(work_package.status_id)

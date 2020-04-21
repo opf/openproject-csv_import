@@ -64,7 +64,7 @@ module CsvImport
                     .pluck(:id)
                     .map { |id| ["cf #{id}", "custom_field_#{id}"] }
 
-            statics = [['version', 'fixed_version_id'],
+            statics = [['version', 'version_id'],
                        ['assignee', 'assigned_to_id']]
 
             map = (associations + cfs + statics).to_h
