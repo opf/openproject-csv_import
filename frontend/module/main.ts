@@ -7,6 +7,7 @@ import {OpenProjectPluginContext} from 'core-app/modules/plugins/plugin-context'
 import {multiInput} from 'reactivestates';
 import {CsvImportResource} from './csv-imports/resource';
 import {HalResource} from 'core-app/modules/hal/resources/hal-resource';
+import {HookService} from "core-app/modules/plugins/hook-service";
 
 export function initializeCsvImportPlugin() {
   return () => {
@@ -41,4 +42,12 @@ export function initializeCsvImportPlugin() {
 
 })
 export class PluginModule {
+  constructor(injector:Injector) {
+    const hookService = injector.get(HookService);
+    hookService.register('openProjectAngularBootstrap', () => {
+      return [
+        { selector: 'csv-import-attachments', cls: CsvImportAttachmentsComponent, embeddable: true }
+      ];
+    });
+  }
 }

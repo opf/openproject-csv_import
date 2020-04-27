@@ -28,7 +28,6 @@
 
 import {Component, OnInit} from '@angular/core';
 import {HalResource} from 'core-app/modules/hal/resources/hal-resource';
-import {DynamicBootstrapper} from 'core-app/globals/dynamic-bootstrapper';
 import {HalResourceService} from 'core-app/modules/hal/services/hal-resource.service';
 
 @Component({
@@ -55,5 +54,3 @@ export class CsvImportAttachmentsComponent implements OnInit {
     this.resource = this.halResourceService.createHalResourceOfType('CsvImport', source, true);
   }
 }
-
-DynamicBootstrapper.register({ selector: 'csv-import-attachments', cls: CsvImportAttachmentsComponent, embeddable: true });
