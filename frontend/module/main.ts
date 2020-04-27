@@ -9,14 +9,22 @@ import {CsvImportResource} from './csv-imports/resource';
 import {HalResource} from 'core-app/modules/hal/resources/hal-resource';
 import {HookService} from "core-app/modules/plugins/hook-service";
 
-export function initializeCsvImportPlugin() {
+export function initializeCsvImportPlugin(injector:Injector) {
   return () => {
+    const hookService = injector.get(HookService);
+
     window.OpenProject.getPluginContext().then((pluginContext:OpenProjectPluginContext) => {
       let halResourceService = pluginContext.services.halResource;
       halResourceService.registerResource('CsvImport', {cls: CsvImportResource});
 
       let states = pluginContext.services.states;
       states.add('csvImports', multiInput<HalResource>());
+    });
+
+    hookService.register('openProjectAngularBootstrap', () => {
+      return [
+        { selector: 'csv-import-attachments', cls: CsvImportAttachmentsComponent, embeddable: true }
+      ];
     });
   }
 }
@@ -42,12 +50,4 @@ export function initializeCsvImportPlugin() {
 
 })
 export class PluginModule {
-  constructor(injector:Injector) {
-    const hookService = injector.get(HookService);
-    hookService.register('openProjectAngularBootstrap', () => {
-      return [
-        { selector: 'csv-import-attachments', cls: CsvImportAttachmentsComponent, embeddable: true }
-      ];
-    });
-  }
 }
