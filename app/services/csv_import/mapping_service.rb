@@ -51,12 +51,12 @@ module CsvImport
       by_process_id.each do |process_id, mappings|
         process_id_cf = CustomField.find_by(name: process_id)
 
-        mappings.each do |mapping|
+        result[process_id_cf.id.to_s] = mappings.map do |mapping|
           process_id_option = cf_option(process_id_cf, mapping['process_id_option'])
           aspect_option = cf_option(aspect_cf, mapping['aspect_option'])
 
-          result[process_id_option.id.to_s] = aspect_option.id.to_s
-        end
+          [process_id_option.id.to_s, aspect_option.id.to_s]
+        end.to_h
       end
 
       result

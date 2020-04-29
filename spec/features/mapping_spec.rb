@@ -104,12 +104,22 @@ describe 'importing a mapping csv file' do
       .to match_array([first_process_id_cf.id.to_s, second_process_id_cf.id.to_s, third_process_id_cf.id.to_s])
 
     expect(Setting.plugin_openproject_deutsche_bahn['process_id_aspect_mappings'])
-      .to eql({ CustomOption.find_by(value: 'PKMSDIAG001').id.to_s => CustomOption.find_by(value: 'First aspect').id.to_s,
-                CustomOption.find_by(value: 'PKMSDIAG002').id.to_s => CustomOption.find_by(value: 'Second aspect').id.to_s,
-                CustomOption.find_by(value: 'PKMSDIAG003').id.to_s => CustomOption.find_by(value: 'Third aspect').id.to_s,
-                CustomOption.find_by(value: 'SPABEDF001').id.to_s => CustomOption.find_by(value: 'First aspect').id.to_s,
-                CustomOption.find_by(value: 'SPABEDF002').id.to_s => CustomOption.find_by(value: 'Fourth aspect').id.to_s,
-                CustomOption.find_by(value: 'EFSERFES001').id.to_s => CustomOption.find_by(value: 'Third aspect').id.to_s,
-                CustomOption.find_by(value: 'EFSERFES002').id.to_s => CustomOption.find_by(value: 'Fourth aspect').id.to_s })
+      .to eql({ first_process_id_cf.id.to_s => {
+                  CustomOption.find_by(value: 'PKMSDIAG001').id.to_s => CustomOption.find_by(value: 'First aspect').id.to_s,
+                  CustomOption.find_by(value: 'PKMSDIAG002').id.to_s => CustomOption.find_by(value: 'Second aspect').id.to_s,
+                  CustomOption.find_by(value: 'PKMSDIAG003').id.to_s => CustomOption.find_by(value: 'Third aspect').id.to_s
+                },
+                second_process_id_cf.id.to_s => {
+                  CustomOption.find_by(value: 'SPABEDF001').id.to_s => CustomOption.find_by(value: 'First aspect').id.to_s,
+                  CustomOption.find_by(value: 'SPABEDF002').id.to_s => CustomOption.find_by(value: 'Fourth aspect').id.to_s
+                },
+                third_process_id_cf.id.to_s => {
+                  CustomOption.find_by(value: 'EFSERFES001').id.to_s => CustomOption.find_by(value: 'Third aspect').id.to_s,
+                  CustomOption.find_by(value: 'EFSERFES002').id.to_s => CustomOption.find_by(value: 'Fourth aspect').id.to_s
+                }
+              })
+
+    # Check the values are correctly displayed
+    visit csv_import_mappings_path
   end
 end
