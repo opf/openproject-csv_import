@@ -77,37 +77,6 @@ describe 'importing a csv file', js: true do
   let!(:version2) do
     FactoryBot.create(:version, project: project1, id: 2)
   end
-  #let(:image_fixture) { Rails.root.join('spec/fixtures/files/image.png') }
-
-  #let!(:pdf_attachment) do
-  #  FactoryBot.create(:attachment,
-  #                    container: nil,
-  #                    author: admin,
-  #                    filename: 'first.pdf',
-  #                    content_type: 'application/pdf').tap do |a|
-  #    a.update_columns(container_id: -1)
-  #  end
-  #end
-  #let!(:png_attachment) do
-  #  FactoryBot.create(:attachment,
-  #                    container: nil,
-  #                    author: admin,
-  #                    filename: 'image.png',
-  #                    content_type: 'image/png').tap do |a|
-  #    a.update_columns(container_id: -1)
-  #  end
-  #end
-  #let!(:doc_attachment) do
-  #  FactoryBot.create(:attachment,
-  #                    container: nil,
-  #                    author: admin,
-  #                    filename: "blubs.doc",
-  #                    content_type: 'application/msword').tap do |a|
-  #    a.update_columns(container_id: -1)
-  #  end
-  #end
-
-  #let(:attachments) { ::Components::Attachments.new }
   let(:import_page) { Pages::CsvImport.new }
 
   before do
@@ -118,16 +87,6 @@ describe 'importing a csv file', js: true do
     import_page.visit!
 
     attach_file("Work packages", work_packages_path)
-
-    #container = page.find('.wp-attachment-upload')
-    #scroll_to_element(container)
-
-    ###
-    ## Attach file manually
-    #expect(page).to have_no_selector('.work-package--attachments--filename')
-    #attachments.attach_file_on_input(image_fixture)
-    #expect(page).not_to have_selector('notification-upload-progress')
-    #expect(page).to have_selector('.work-package--attachments--filename', text: 'image.png', wait: 5)
 
     perform_enqueued_jobs do
       click_button("Import")

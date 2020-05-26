@@ -121,11 +121,18 @@ module CsvImport
             file_path = path.join name
             File.open(file_path, 'w') do |f|
               f.binmode
+              written = false
+
               from_s3(name) do |chunk|
+                written = true
                 f.write chunk
               end
 
-              yield f
+              if written
+                yield f
+              else
+                yield nil
+              end
             end
           ensure
             File.delete(file_path) if File.exists?(file_path)

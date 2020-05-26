@@ -68,37 +68,82 @@ describe CsvImport::WorkPackageService do
   let!(:version2) do
     FactoryBot.create(:version, project: project1, id: 2)
   end
+  let(:pdf_file) do
+    double('file first.pdf', key: 'first.pdf')
+  end
+  let(:image_file) do
+    double('file image.png', key: 'image.png')
+  end
+  let(:doc_file) do
+    double('file blubs.doc', key: 'blubs.doc')
+  end
+  let!(:fog_files) do
+    storage = double('fog_storage')
+    directories = double('fog directories')
+    files = double('fog files')
 
-  let!(:pdf_attachment) do
-    FactoryBot.create(:attachment,
-                      container: nil,
-                      author: admin,
-                      filename: 'first.pdf',
-                      content_type: 'application/pdf').tap do |a|
-      a.update_columns(container_id: -1)
+    allow(Fog::Storage)
+      .to receive(:new)
+      .and_call_original
+
+    allow(Fog::Storage)
+      .to receive(:new)
+      .with(provider: 'AWS',
+            aws_access_key_id: csv_configuration['s3']['aws_access_key_id'],
+            aws_secret_access_key: csv_configuration['s3']['aws_secret_access_key'],
+            region: csv_configuration['s3']['region'])
+      .and_return(storage)
+
+    allow(storage)
+      .to receive(:directories)
+      .and_return(directories)
+
+    allow(directories)
+      .to receive(:new)
+      .and_return(directories)
+
+    allow(directories)
+      .to receive(:files)
+      .and_return(files)
+
+    [pdf_file, image_file, doc_file].each do |file|
+      allow(files)
+        .to receive(:get)
+        .with(file.key)
+        .and_yield file
     end
+
+    files
   end
-  let!(:png_attachment) do
-    FactoryBot.create(:attachment,
-                      container: nil,
-                      author: admin,
-                      filename: 'image.png',
-                      content_type: 'image/png').tap do |a|
-      a.update_columns(container_id: -1)
-    end
+  let(:csv_configuration) do
+    {
+      "s3" => {
+        "directory" => "test",
+        "region" => 'eu-west-1',
+        "aws_access_key_id" => 'ABC',
+        "aws_secret_access_key" => 'DEF'
+      }
+    }
   end
-  let!(:doc_attachment) do
-    FactoryBot.create(:attachment,
-                      container: nil,
-                      author: admin,
-                      filename: "blubs.doc",
-                      content_type: 'application/msword').tap do |a|
-      a.update_columns(container_id: -1)
-    end
+
+  let!(:configuration) do
+    allow(OpenProject::Configuration)
+      .to receive(:[])
+      .with('csv_import')
+      .and_return(csv_configuration)
   end
+
 
   let(:instance) { described_class.new(admin) }
   let(:call) { instance.call(work_packages_path) }
+
+  before do
+    CsvImport::WorkPackages::WorkPackageImporter.instance_variable_set(:'@s3_bucket', nil)
+  end
+
+  after do
+    CsvImport::WorkPackages::WorkPackageImporter.instance_variable_set(:'@s3_bucket', nil)
+  end
 
   it 'is successful' do
     expect(call)
@@ -168,9 +213,9 @@ describe CsvImport::WorkPackageService do
     # first work package attachments
 
     expect(work_package.attachments.map(&:filename))
-      .to match_array([png_attachment.filename, doc_attachment.filename])
+      .to match_array([image_file.key, doc_file.key])
 
-    linked_png_attachment = work_package.attachments.detect { |a| a.filename == png_attachment.filename }
+    linked_png_attachment = work_package.attachments.detect { |a| a.filename == image_file.key }
 
     expect(linked_png_attachment.created_at )
       .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
@@ -181,7 +226,7 @@ describe CsvImport::WorkPackageService do
     expect(linked_png_attachment.journals.first.created_at)
       .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
 
-    linked_doc_attachment = work_package.attachments.detect { |a| a.filename == doc_attachment.filename }
+    linked_doc_attachment = work_package.attachments.detect { |a| a.filename == doc_file.key }
 
     expect(linked_doc_attachment.created_at )
       .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
@@ -209,10 +254,10 @@ describe CsvImport::WorkPackageService do
       .to eql(DateTime.parse("2019-05-02T12:20:32Z").utc)
 
     expect(work_package.journals.first.attachable_journals.map(&:filename))
-      .to match_array([pdf_attachment.filename, png_attachment.filename])
+      .to match_array([pdf_file.key, image_file.key])
 
     expect(work_package.journals.last.attachable_journals.map(&:filename))
-      .to match_array([png_attachment.filename, doc_attachment.filename])
+      .to match_array([image_file.key, doc_file.key])
 
     # Relations
 
@@ -296,7 +341,10 @@ describe CsvImport::WorkPackageService do
 
   context 'on a missing attachment' do
     before do
-      doc_attachment.destroy
+      allow(fog_files)
+        .to receive(:get)
+        .with(doc_file.key)
+      # and do not yield
     end
 
     it_behaves_like 'import failure'
@@ -309,7 +357,7 @@ describe CsvImport::WorkPackageService do
         .to eql 2
 
       expect(call.errors.first.messages)
-        .to match_array ["The attachment '#{doc_attachment.filename}' does not exist."]
+        .to match_array ["The attachment '#{doc_file.key}' does not exist."]
     end
   end
 
