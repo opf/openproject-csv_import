@@ -96,7 +96,7 @@ module CsvImport
           attributes
             .except('timestamp', 'id', 'attachments')
             .symbolize_keys
-            .reverse_merge(start_date: nil, due_date: nil)
+            .reverse_merge(start_date: nil, due_date: nil, send_notifications: false)
         end
 
         def find_user(attributes)
