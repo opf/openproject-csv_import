@@ -72,20 +72,15 @@ module CsvImport
         def create_new_attachments(work_package, names, attributes)
           attachments_to_create = names - work_package.attachments.map(&:filename)
 
-          attachments = Attachment
-                        .where(container_id: -1, container_type: nil)
-                        .where(file: attachments_to_create)
-                        .group_by(&:filename)
-
           attachments_to_create.map do |name|
-            file = find_template_file(attachments, name)
+            from_template_file(name) do |file|
+              if file
+                user = find_user(attributes)
 
-            if file
-              user = find_user(attributes)
-
-              build_attachment(work_package, file, user)
-            else
-              failure_result("The attachment '#{name}' does not exist.")
+                build_attachment(work_package, file, user)
+              else
+                failure_result("The attachment '#{name}' does not exist.")
+              end
             end
           end
         end
@@ -98,7 +93,10 @@ module CsvImport
         end
 
         def work_package_attributes(attributes)
-          attributes.except('timestamp', 'id', 'attachments').symbolize_keys
+          attributes
+            .except('timestamp', 'id', 'attachments')
+            .symbolize_keys
+            .reverse_merge(start_date: nil, due_date: nil)
         end
 
         def find_user(attributes)
@@ -112,15 +110,45 @@ module CsvImport
           end
         end
 
-        def find_template_file(candidates, name)
-          return unless candidates[name]
+        def from_template_file(name)
+          begin
+            tmp = Tempfile.new name
+            path = Pathname(tmp)
 
-          template = candidates[name].first
+            tmp.delete # delete temp file
+            path.mkdir # create temp directory
 
-          if template.file.is_a?(FogFileUploader)
-            template.diskfile
-          else
-            template.file
+            file_path = path.join name
+            File.open(file_path, 'w') do |f|
+              f.binmode
+              from_s3(name) do |chunk|
+                f.write chunk
+              end
+
+              yield f
+            end
+          ensure
+            File.delete(file_path) if File.exists?(file_path)
+          end
+        end
+
+        def from_s3(name, &block)
+          s3_bucket.files.get(name, &block)
+        end
+
+        def s3_bucket
+          @s3_bucket ||= begin
+            configuration = OpenProject::Configuration['csv_import']
+
+            raise 'CSV import s3 connection is not configured' unless configuration
+
+            storage = Fog::Storage.new(provider: 'AWS',
+                                       aws_access_key_id: configuration['s3']['aws_access_key_id'],
+                                       aws_secret_access_key: configuration['s3']['aws_secret_access_key'],
+                                       region: configuration['s3']['region'])
+
+            storage.directories.new(key: configuration['s3']['directory'],
+                                    location: configuration['s3']['region'])
           end
         end
       end

@@ -6,7 +6,9 @@ module CsvImport
 
     def call(work_packages_path)
       BaseMailer.with_deliveries(false) do
-        import(work_packages_path)
+        with_settings do
+          import(work_packages_path)
+        end
       end
     end
 
@@ -94,6 +96,15 @@ module CsvImport
 
     def import_relations(record)
       ::CsvImport::WorkPackages::RelationImporter.import(record)
+    end
+
+    def with_settings
+      setting_before = Setting.work_package_startdate_is_adddate
+      Setting.work_package_startdate_is_adddate = false
+
+      yield
+    ensure
+      Setting.work_package_startdate_is_adddate = setting_before
     end
   end
 end
