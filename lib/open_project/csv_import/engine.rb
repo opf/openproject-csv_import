@@ -9,7 +9,12 @@ module OpenProject::CsvImport
     include OpenProject::Plugins::ActsAsOpEngine
 
     register 'openproject-csv_import',
-             :author_url => 'https://openproject.org'
+             :author_url => 'https://openproject.org',
+             settings: {
+               default: {
+                 "current_import_attachment_id" => nil,
+               }
+             }
 
     add_api_path :csv_import do
       "#{root}/csv_import"

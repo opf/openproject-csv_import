@@ -31,18 +31,42 @@ module API
     module CsvImport
       class CsvImportAPI < ::API::OpenProjectAPI
         resources :csv_import do
+          helpers do
+            def current_status
+              current_attachment_id = Setting.plugin_openproject_csv_import['current_import_attachment_id']
+
+              return unless current_attachment_id
+
+              Delayed::Job::Status.find_by(reference_type: 'Attachment', reference_id: current_attachment_id)
+            end
+
+            def set_current_attachment_id(attachment)
+              Setting.plugin_openproject_csv_import = Setting.plugin_openproject_csv_import.merge('current_import_attachment_id' => attachment.id)
+            end
+
+            def eligible_for_new?
+              !current_status || current_status.success? || current_status.failure?
+            end
+          end
+
           post do
             authorize_admin
+
+            unless eligible_for_new?
+              raise ::API::Errors::Conflict.new
+            end
 
             uploaded_file = OpenProject::Files.create_uploaded_file name: 'csv_import.csv',
                                                                     content_type: params['contentType'],
                                                                     content: Base64.decode64(params['data']),
                                                                     binary: true
 
-            work_package_attachment = Attachment.create! file: uploaded_file,
-                                                         author: current_user
+            import_attachment = Attachment.create! file: uploaded_file,
+                                                   author: current_user
 
-            ::CsvImport::WorkPackageJob.perform_later(current_user, work_package_attachment)
+            set_current_attachment_id(import_attachment)
+
+            ::CsvImport::WorkPackageJob.perform_later(current_user, import_attachment)
           end
         end
       end

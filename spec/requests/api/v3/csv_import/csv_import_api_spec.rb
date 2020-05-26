@@ -139,5 +139,29 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
         expect(subject.status).to eq(403)
       end
     end
+
+    context 'if triggering multiple imports (without the first having finished)' do
+      before do
+        # second time already
+        post request_path, { data: Base64.encode64(csv_content), contentType: content_type }.to_json
+      end
+
+      it 'responds 409' do
+        expect(subject.status).to eq(409)
+      end
+    end
+
+    context 'if triggering multiple imports (after the first having finished)' do
+      before do
+        perform_enqueued_jobs
+
+        # second time already but after the first is finished
+        post request_path, { data: Base64.encode64(csv_content), contentType: content_type }.to_json
+      end
+
+        it 'responds 201 HTTP Created' do
+        expect(subject.status).to eq(201)
+      end
+    end
   end
 end

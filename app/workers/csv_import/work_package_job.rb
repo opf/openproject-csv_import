@@ -13,5 +13,9 @@ module CsvImport
 
       super(attachment)
     end
+
+    def status_reference
+      arguments.last # the attachment
+    end
   end
 end
