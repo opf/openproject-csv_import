@@ -40,6 +40,19 @@ module API
               Delayed::Job::Status.find_by(reference_type: 'Attachment', reference_id: current_attachment_id)
             end
 
+            def current_status_string
+              status = current_status
+
+              return 'Ready' unless status
+
+              case status.status
+              when 'in_queue', 'in_process', 'error'
+                'Processing'
+              else
+                'Ready'
+              end
+            end
+
             def set_current_attachment_id(attachment)
               Setting.plugin_openproject_csv_import = Setting.plugin_openproject_csv_import.merge('current_import_attachment_id' => attachment.id)
             end
@@ -49,9 +62,17 @@ module API
             end
           end
 
-          post do
+          after_validation do
             authorize_admin
+          end
 
+          get do
+            {
+              status: current_status_string
+            }
+          end
+
+          post do
             unless eligible_for_new?
               raise ::API::Errors::Conflict.new
             end

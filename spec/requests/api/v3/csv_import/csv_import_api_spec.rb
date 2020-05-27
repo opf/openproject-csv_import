@@ -83,19 +83,15 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
     login_as(current_user)
   end
 
-  describe '#post' do
-    let(:permissions) { Array(update_permission) }
+  subject(:response) { last_response }
+  let(:request_path) { api_v3_paths.csv_import }
 
-    let(:request_path) { api_v3_paths.csv_import }
-    let(:max_file_size) { 1 } # given in kiB
+  describe '#post /api/v3/csv_import' do
     let(:content_type) { 'text/csv' }
 
     before do
-      allow(Setting).to receive(:attachment_max_size).and_return max_file_size.to_s
       post request_path, { data: Base64.encode64(csv_content), contentType: content_type }.to_json
     end
-
-    subject(:response) { last_response }
 
     it 'responds 201 HTTP Created' do
       expect(subject.status).to eq(201)
@@ -161,6 +157,122 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
 
         it 'responds 201 HTTP Created' do
         expect(subject.status).to eq(201)
+      end
+    end
+  end
+
+  describe '#get /api/v3/csv_import' do
+    let(:setup) { }
+    let!(:status)  do
+      if current_status
+        FactoryBot.create(:delayed_job_status,
+                          reference_type: 'Attachment',
+                          reference_id: 1,
+                          status: current_status)
+      end
+    end
+    let(:current_status) { nil }
+
+    before do
+      get request_path
+    end
+
+    it 'returns 200 OK' do
+      expect(subject.status).to eq(200)
+    end
+
+    it 'returns a body indicating `Ready`' do
+      expect(subject.body)
+        .to be_json_eql({ status: 'Ready' }.to_json)
+    end
+
+    context 'if a file has already been uploaded but is not processed yet',
+            with_settings: { plugin_openproject_csv_import: { "current_import_attachment_id" => '1' }} do
+      let(:current_status) { Delayed::Job::Status.statuses[:in_queue] }
+
+      it 'returns 200 OK' do
+        expect(subject.status).to eq(200)
+      end
+
+      it 'returns a body indicating `Processing`' do
+        expect(subject.body)
+          .to be_json_eql({ status: 'Processing' }.to_json)
+      end
+    end
+
+    context 'if a file has already been uploaded and is processed',
+            with_settings: { plugin_openproject_csv_import: { "current_import_attachment_id" => '1' }} do
+      let(:current_status) { Delayed::Job::Status.statuses[:in_process] }
+
+      it 'returns 200 OK' do
+        expect(subject.status).to eq(200)
+      end
+
+      it 'returns a body indicating `Processing`' do
+        expect(subject.body)
+          .to be_json_eql({ status: 'Processing' }.to_json)
+      end
+    end
+
+    context 'if a file has already been uploaded and succeeded',
+            with_settings: { plugin_openproject_csv_import: { "current_import_attachment_id" => '1' }} do
+      let(:current_status) { Delayed::Job::Status.statuses[:success] }
+
+      it 'returns 200 OK' do
+        expect(subject.status).to eq(200)
+      end
+
+      it 'returns a body indicating `Ready`' do
+        expect(subject.body)
+          .to be_json_eql({ status: 'Ready' }.to_json)
+      end
+    end
+
+    context 'if a file has already been uploaded and errored',
+            with_settings: { plugin_openproject_csv_import: { "current_import_attachment_id" => '1' }} do
+      let(:current_status) { Delayed::Job::Status.statuses[:error] }
+
+      it 'returns 200 OK' do
+        expect(subject.status).to eq(200)
+      end
+
+      it 'returns a body indicating `Processing`' do
+        expect(subject.body)
+          .to be_json_eql({ status: 'Processing' }.to_json)
+      end
+    end
+
+    context 'if a file has already been uploaded and failed',
+            with_settings: { plugin_openproject_csv_import: { "current_import_attachment_id" => '1' }} do
+      let(:current_status) { Delayed::Job::Status.statuses[:failure] }
+
+      it 'returns 200 OK' do
+        expect(subject.status).to eq(200)
+      end
+
+      it 'returns a body indicating `Ready`' do
+        expect(subject.body)
+          .to be_json_eql({ status: 'Ready' }.to_json)
+      end
+    end
+
+    context 'if a file had already been uploaded but the status is no longer available',
+            with_settings: { plugin_openproject_csv_import: { "current_import_attachment_id" => '1' }} do
+      it 'returns 200 OK' do
+        expect(subject.status).to eq(200)
+      end
+
+      it 'returns a body indicating `Processing`' do
+        expect(subject.body)
+          .to be_json_eql({ status: 'Ready' }.to_json)
+      end
+    end
+
+    context 'if non admin' do
+      let(:current_user) { user1 }
+
+      it 'responds 403' do
+        expect(subject.status).to eq(403)
       end
     end
   end
