@@ -88,9 +88,10 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
 
   describe '#post /api/v3/csv_import' do
     let(:content_type) { 'text/csv' }
+    let(:params) { { data: Base64.encode64(csv_content), contentType: content_type } }
 
     before do
-      post request_path, { data: Base64.encode64(csv_content), contentType: content_type }.to_json
+      post request_path, params.to_json
     end
 
     it 'responds 201 HTTP Created' do
@@ -126,6 +127,9 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
 
       expect(CSV.parse(mail.attachments[0].read))
         .to match_array [["1", WorkPackage.first.id.to_s], ["2", WorkPackage.last.id.to_s]]
+
+      expect(WorkPackage.where(subject: 'Other newer subject'))
+        .to exist
     end
 
     context 'if non admin' do
@@ -157,6 +161,53 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
 
         it 'responds 201 HTTP Created' do
         expect(subject.status).to eq(201)
+      end
+    end
+
+    context 'providing the data in a different encoding' do
+      let(:csv_content) do
+        File.read(File.join(File.dirname(__FILE__), '../../../../fixtures/special_chars.csv'))
+      end
+      let(:params) do
+        {
+          data: Base64.encode64(csv_content.encode("ISO-8859-1")),
+          contentType: content_type,
+          encoding: "ISO-8859-1"
+        }
+      end
+
+      it 'creates the work packages' do
+        perform_enqueued_jobs
+
+        expect(WorkPackage.count)
+          .to eql(2)
+
+        mail = ActionMailer::Base.deliveries.last
+
+        expect(mail)
+          .not_to be_nil
+
+        expect(mail.subject)
+          .to eql("Import completed successfully")
+
+        expect(mail.to)
+          .to match_array [admin.mail]
+
+        expect(mail.html_part.body)
+          .to include("Work packages: 2")
+        expect(mail.html_part.body)
+          .to include("Attachments: 0")
+        expect(mail.html_part.body)
+          .to include("Relations: 1")
+
+        expect(mail.attachments.length)
+          .to eql 1
+
+        expect(CSV.parse(mail.attachments[0].read))
+          .to match_array [["1", WorkPackage.first.id.to_s], ["2", WorkPackage.last.id.to_s]]
+
+        expect(WorkPackage.where(subject: 'Öther newer ßübject'))
+          .to exist
       end
     end
   end

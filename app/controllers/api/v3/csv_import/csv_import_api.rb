@@ -60,6 +60,18 @@ module API
             def eligible_for_new?
               !current_status || current_status.success? || current_status.failure?
             end
+
+            def content
+              base64_content = params['data']
+
+              content_string = Base64.decode64(base64_content)
+
+              if params['encoding']
+                content_string.force_encoding(params['encoding']).encode('UTF-8')
+              else
+                content_string
+              end
+            end
           end
 
           after_validation do
@@ -79,7 +91,7 @@ module API
 
             uploaded_file = OpenProject::Files.create_uploaded_file name: 'csv_import.csv',
                                                                     content_type: params['contentType'],
-                                                                    content: Base64.decode64(params['data']),
+                                                                    content: content,
                                                                     binary: true
 
             import_attachment = Attachment.create! file: uploaded_file,
