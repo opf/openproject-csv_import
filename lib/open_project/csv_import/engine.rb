@@ -22,6 +22,8 @@ module OpenProject::CsvImport
                                                       klass: 'CsvImport::WorkPackages::CsvParser')
     end
 
+    patches [:JournalManager]
+
     add_api_path :csv_import do
       "#{root}/csv_import"
     end

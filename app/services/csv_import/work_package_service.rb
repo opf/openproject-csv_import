@@ -6,8 +6,10 @@ module CsvImport
 
     def call(work_packages_path, content_type)
       BaseMailer.with_deliveries(false) do
-        with_settings do
-          import(work_packages_path, content_type)
+        JournalManager.without_sending do
+          with_settings do
+            import(work_packages_path, content_type)
+          end
         end
       end
     end
@@ -105,12 +107,14 @@ module CsvImport
     end
 
     def with_settings
-      setting_before = Setting.work_package_startdate_is_adddate
-      Setting.work_package_startdate_is_adddate = false
+      settings_before = Setting.send(:cached_settings)
+      RequestStore.store[:cached_settings] = settings_before.merge("work_package_startdate_is_adddate" => "false",
+                                                                   "notified_events" => YAML.dump([]))
+      RequestStore.store[:settings_updated_on] = DateTime.now + 100.days
 
       yield
     ensure
-      Setting.work_package_startdate_is_adddate = setting_before
+      Setting.clear_cache
     end
   end
 end
