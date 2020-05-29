@@ -1,6 +1,7 @@
 # Prevent load-order problems in case openproject-plugins is listed after a plugin in the Gemfile
 # or not at all
 require 'open_project/plugins'
+require_relative '../../../config/constants/csv_import/parser_registry'
 
 module OpenProject::CsvImport
   class Engine < ::Rails::Engine
@@ -15,6 +16,11 @@ module OpenProject::CsvImport
                  "current_import_attachment_id" => nil,
                }
              }
+
+    initializer 'csv_import.register_parser' do
+      ::Constants::CsvImport::ParserRegistry.register(content_type: 'text/csv',
+                                                      klass: 'CsvImport::WorkPackages::CsvParser')
+    end
 
     add_api_path :csv_import do
       "#{root}/csv_import"

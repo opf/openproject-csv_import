@@ -135,7 +135,7 @@ describe CsvImport::WorkPackageService do
 
 
   let(:instance) { described_class.new(admin) }
-  let(:call) { instance.call(work_packages_path) }
+  let(:call) { instance.call(work_packages_path, 'text/csv') }
 
   before do
     CsvImport::WorkPackages::WorkPackageImporter.instance_variable_set(:'@s3_bucket', nil)

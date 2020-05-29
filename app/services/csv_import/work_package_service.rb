@@ -4,10 +4,10 @@ module CsvImport
       self.user = user
     end
 
-    def call(work_packages_path)
+    def call(work_packages_path, content_type)
       BaseMailer.with_deliveries(false) do
         with_settings do
-          import(work_packages_path)
+          import(work_packages_path, content_type)
         end
       end
     end
@@ -16,8 +16,8 @@ module CsvImport
 
     attr_accessor :user
 
-    def import(work_packages_path)
-      records = parse(work_packages_path)
+    def import(work_packages_path, content_type)
+      records = parse(work_packages_path, content_type)
 
       process(records)
 
@@ -38,8 +38,14 @@ module CsvImport
       end
     end
 
-    def parse(work_packages_path)
-      ::CsvImport::WorkPackages::CsvParser.parse(work_packages_path)
+    def parse(work_packages_path, content_type)
+      klass = ::Constants::CsvImport::ParserRegistry.for(content_type)
+
+      unless klass
+        raise "No parser registered for #{content_type}"
+      end
+
+      klass.constantize.parse(work_packages_path)
     end
 
     def process_work_packages(records)

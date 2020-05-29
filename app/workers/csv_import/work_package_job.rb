@@ -3,7 +3,7 @@ module CsvImport
     def perform(user, attachment)
       call = CsvImport::WorkPackageService
              .new(user)
-             .call(attachment_path(attachment))
+             .call(attachment_path(attachment), attachment.content_type)
 
       if call.success?
         CsvImport::Mailer.success(user, call.result).deliver_now

@@ -27,6 +27,7 @@ module CsvImport
             ::WorkPackages::CreateService
               .new(user: find_user(attributes))
               .call(work_package: work_package,
+                    send_notifications: false,
                     **work_package_attributes(attributes).merge(within_db_process: true))
           end
         end
@@ -36,7 +37,8 @@ module CsvImport
             ::WorkPackages::UpdateService
               .new(user: find_user(attributes),
                    model: work_package)
-              .call(**work_package_attributes(attributes))
+              .call(send_notifications: false,
+                    **work_package_attributes(attributes))
           end
         end
 
@@ -96,7 +98,7 @@ module CsvImport
           attributes
             .except('timestamp', 'id', 'attachments')
             .symbolize_keys
-            .reverse_merge(start_date: nil, due_date: nil, send_notifications: false)
+            .reverse_merge(start_date: nil, due_date: nil)
         end
 
         def find_user(attributes)

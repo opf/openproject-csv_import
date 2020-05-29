@@ -48,6 +48,10 @@ module API
               case status.status
               when 'in_queue', 'in_process', 'error'
                 'Processing'
+              when 'success'
+                'Success'
+              when 'failure'
+                'Failure'
               else
                 'Ready'
               end
@@ -89,7 +93,11 @@ module API
               raise ::API::Errors::Conflict.new
             end
 
-            uploaded_file = OpenProject::Files.create_uploaded_file name: 'csv_import.csv',
+            file_extensions = Redmine::MimeType::MIME_TYPES[params['contentType']]
+
+            raise ::API::Errors::BadRequest.new('Unsupported content type') unless file_extensions
+
+            uploaded_file = OpenProject::Files.create_uploaded_file name: "csv_import.#{file_extensions.split(',').first}",
                                                                     content_type: params['contentType'],
                                                                     content: content,
                                                                     binary: true

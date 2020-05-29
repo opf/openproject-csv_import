@@ -273,9 +273,9 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
         expect(subject.status).to eq(200)
       end
 
-      it 'returns a body indicating `Ready`' do
+      it 'returns a body indicating `Success`' do
         expect(subject.body)
-          .to be_json_eql({ status: 'Ready' }.to_json)
+          .to be_json_eql({ status: 'Success' }.to_json)
       end
     end
 
@@ -301,9 +301,9 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
         expect(subject.status).to eq(200)
       end
 
-      it 'returns a body indicating `Ready`' do
+      it 'returns a body indicating `Failure`' do
         expect(subject.body)
-          .to be_json_eql({ status: 'Ready' }.to_json)
+          .to be_json_eql({ status: 'Failure' }.to_json)
       end
     end
 
