@@ -108,6 +108,10 @@ module API
             set_current_attachment_id(import_attachment)
 
             ::CsvImport::WorkPackageJob.perform_later(current_user, import_attachment)
+
+            {
+              status: current_status_string
+            }
           end
         end
       end

@@ -88,12 +88,12 @@ describe 'importing a csv file', js: true do
 
     attach_file("Work packages", work_packages_path)
 
-    perform_enqueued_jobs do
-      click_button("Import")
-    end
+    click_button("Import")
 
     expect(page)
       .to have_content("Import in progress. You will receive the results by mail.")
+
+    perform_enqueued_jobs
   end
 
   it 'imports the work packages' do
@@ -125,12 +125,16 @@ describe 'importing a csv file', js: true do
 
     expect(CSV.parse(mail.attachments[0].read))
       .to match_array [["1", WorkPackage.first.id.to_s], ["2", WorkPackage.last.id.to_s]]
+
+    expect(Delayed::Job::Status.last.status)
+      .to eql('success')
   end
 
   it 'fails on import errors' do
     workflows.destroy
 
-    start_import
+    expect { start_import }
+      .to raise_error CsvImport::WorkPackageJob::UnsuccessfulImport
 
     expect(WorkPackage.count)
       .to eql(0)
@@ -150,5 +154,9 @@ describe 'importing a csv file', js: true do
       .to have_content("Failed to import line 2:")
     expect(mail.body)
       .to have_content("Status is invalid because no valid transition exists from old to new status for the current user's roles.")
+
+    # the delayed job status should be failed
+    expect(Delayed::Job::Status.last.status)
+      .to eql('error')
   end
 end

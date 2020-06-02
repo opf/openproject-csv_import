@@ -9,13 +9,24 @@ module CsvImport
         CsvImport::Mailer.success(user, call.result).deliver_now
       else
         CsvImport::Mailer.failure(user, call.errors).deliver_now
+        delayed_job_status_fail
       end
 
       super(attachment)
     end
 
     def status_reference
-      arguments.last # the attachment
+      attachment
     end
+
+    def delayed_job_status_fail
+      raise UnsuccessfulImport
+    end
+
+    def attachment
+      arguments.last
+    end
+
+    class UnsuccessfulImport < StandardError; end
   end
 end
