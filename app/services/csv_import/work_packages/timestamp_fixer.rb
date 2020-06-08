@@ -7,7 +7,7 @@ module CsvImport
 
           if (work_package = record.work_package)
             fix_work_package_timestamp(parsed_time, work_package)
-            fix_work_package_journal_timestamp(parsed_time, record.data['comment'] || '', work_package)
+            fix_work_package_journal_timestamp(parsed_time, work_package)
           end
 
           attachments = record.attachments.reject(&:destroyed?).reject(&:new_record?)
@@ -24,12 +24,11 @@ module CsvImport
                             updated_at: timestamp)
         end
 
-        def fix_work_package_journal_timestamp(timestamp, notes, work_package)
+        def fix_work_package_journal_timestamp(timestamp, work_package)
           work_package
             .journals
             .last
-            .update_columns(created_at: timestamp,
-                            notes: notes)
+            .update_columns(created_at: timestamp)
         end
 
         def fix_attachment_timestamp(timestamp, attachments)

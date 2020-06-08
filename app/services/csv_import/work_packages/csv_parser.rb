@@ -65,7 +65,8 @@ module CsvImport
                     .map { |id| ["cf #{id}", "custom_field_#{id}"] }
 
             statics = [['version', 'version_id'],
-                       ['assignee', 'assigned_to_id']]
+                       ['assignee', 'assigned_to_id'],
+                       ['comment', 'journal_notes']]
 
             map = (associations + cfs + statics).to_h
 
