@@ -247,6 +247,9 @@ describe CsvImport::WorkPackageService do
     expect(work_package.journals.first.created_at)
       .to eql(DateTime.parse("2019-05-02T12:19:32Z").utc)
 
+    expect(work_package.journals.first.notes)
+      .to eql("The first comment")
+
     expect(work_package.journals.last.user)
       .to eql(user1)
 
@@ -258,6 +261,31 @@ describe CsvImport::WorkPackageService do
 
     expect(work_package.journals.last.attachable_journals.map(&:filename))
       .to match_array([image_file.key, doc_file.key])
+
+    expect(work_package.journals.last.notes)
+      .to eql("The second comment")
+
+    # second work package journals
+    expect(work_package2.journals.length)
+      .to eql(2)
+
+    expect(work_package2.journals.first.user)
+      .to eql(user1)
+
+    expect(work_package2.journals.first.created_at)
+      .to eql(DateTime.parse("2019-01-10T12:20:32Z").utc)
+
+    expect(work_package2.journals.first.notes)
+      .to eql("Other subject first comment")
+
+    expect(work_package2.journals.last.user)
+      .to eql(user1)
+
+    expect(work_package2.journals.last.created_at)
+      .to eql(DateTime.parse("2019-01-11T12:20:32Z").utc)
+
+    expect(work_package2.journals.last.notes)
+      .to eql("Other subject second comment")
 
     # Relations
 
