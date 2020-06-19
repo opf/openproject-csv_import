@@ -136,6 +136,8 @@ module CsvImport
                 yield nil
               end
             end
+          rescue StandardError
+            yield nil
           ensure
             File.delete(file_path) if File.exists?(file_path)
           end
