@@ -21,7 +21,7 @@ module CsvImport
     def import(work_packages_path, content_type)
       records = parse(work_packages_path, content_type)
 
-      ::CsvImport::Logger.log("Parsed data for #{records.records.length} work packages.")
+      log("Parsed data for #{records.records.length} work packages.")
 
       process(records)
 
@@ -54,7 +54,7 @@ module CsvImport
 
     def process_work_packages(records)
       records.each_with_break do |record|
-        ::CsvImport::Logger.log("Importing data for record with id: #{record.data_id} - timestamp: #{record.timestamp}.")
+        log("Importing data for record with id: #{record.data_id} - timestamp: #{record.timestamp}.")
         import_work_package(record) unless record.invalid?
         fix_timestamp(record) unless record.invalid?
 
@@ -64,9 +64,10 @@ module CsvImport
 
             #{record.failure_call.errors.full_messages}
           MESSAGE
-          ::CsvImport::Logger.log(message)
+
+          log(message)
         else
-          ::CsvImport::Logger.log("Record with id: #{record.data_id} - timestamp: #{record.timestamp}: Is valid.")
+          log("Record with id: #{record.data_id} - timestamp: #{record.timestamp}: Is valid.")
         end
 
         record.invalid?
@@ -130,6 +131,10 @@ module CsvImport
       yield
     ensure
       Setting.clear_cache
+    end
+
+    def log(message)
+      OpenProject::CsvImport::Logger.log(message)
     end
   end
 end

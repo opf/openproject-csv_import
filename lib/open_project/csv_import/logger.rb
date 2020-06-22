@@ -1,4 +1,4 @@
-module CsvImport
+module OpenProject::CsvImport
   module Logger
     def log(message)
       concat_message = <<~MESSAGE

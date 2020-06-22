@@ -11,11 +11,15 @@ module CsvImport
 
       class << self
         def import(record)
-          if record.import_id
-            update_work_package(record)
-          else
-            create_work_package(record)
-          end
+          call = if record.import_id
+                   update_work_package(record)
+                 else
+                   create_work_package(record)
+                 end
+
+          log("Record imported #{call&.success? ? 'succesfully' : 'unsuccessfully'}")
+
+          call
         rescue UserNotFoundError => e
           record.wp_call = failure_result(e.message)
         end
@@ -24,6 +28,7 @@ module CsvImport
 
         def create_work_package(record)
           modify_work_package(record, ::WorkPackage.new) do |work_package, attributes|
+            log("Creating new work package based on record: #{record.data_id}")
             ::WorkPackages::CreateService
               .new(user: find_user(attributes))
               .call(work_package: work_package,
@@ -34,6 +39,7 @@ module CsvImport
 
         def update_work_package(record)
           modify_work_package(record, ::WorkPackage.find(record.import_id)) do |work_package, attributes|
+            log("Updating existing work package #{record.import_id} based on record: #{record.data_id}")
             ::WorkPackages::UpdateService
               .new(user: find_user(attributes),
                    model: work_package)
@@ -79,9 +85,12 @@ module CsvImport
               if file
                 user = find_user(attributes)
 
+                log("Adding attachment #{name}")
                 build_attachment(work_package, file, user)
               else
-                failure_result("The attachment '#{name}' does not exist.")
+                message = "The attachment '#{name}' does not exist."
+                log(message)
+                failure_result(message)
               end
             end
           end
@@ -143,7 +152,9 @@ module CsvImport
 
         def from_s3(name, &block)
           s3_bucket.files.get(name, &block)
-        rescue StandardError
+        rescue StandardError => e
+          log("Error fetching file from s3: #{e.message}")
+
           nil
         end
 
@@ -161,6 +172,10 @@ module CsvImport
             storage.directories.new(key: configuration['s3']['directory'],
                                     location: configuration['s3']['region'])
           end
+        end
+
+        def log(message)
+          OpenProject::CsvImport::Logger.log(message)
         end
       end
     end
