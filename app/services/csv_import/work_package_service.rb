@@ -21,6 +21,8 @@ module CsvImport
     def import(work_packages_path, content_type)
       records = parse(work_packages_path, content_type)
 
+      ::CsvImport::Logger.log("Parsed data for #{records.records.length} work packages.")
+
       process(records)
 
       if records.valid?
@@ -52,10 +54,21 @@ module CsvImport
 
     def process_work_packages(records)
       records.each_with_break do |record|
-        unless record.invalid?
-          import_work_package(record)
-          fix_timestamp(record)
+        ::CsvImport::Logger.log("Importing data for record with id: #{record.data_id} - timestamp: #{record.timestamp}.")
+        import_work_package(record) unless record.invalid?
+        fix_timestamp(record) unless record.invalid?
+
+        if record.invalid?
+          message = <<~MESSAGE
+            Record with id: #{record.data_id} - timestamp: #{record.timestamp}: Is invalid.
+
+            #{record.failure_call.errors.full_messages}
+          MESSAGE
+          ::CsvImport::Logger.log(message)
+        else
+          ::CsvImport::Logger.log("Record with id: #{record.data_id} - timestamp: #{record.timestamp}: Is valid.")
         end
+
         record.invalid?
       end
     end

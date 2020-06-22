@@ -1,6 +1,7 @@
 # Prevent load-order problems in case openproject-plugins is listed after a plugin in the Gemfile
 # or not at all
 require 'open_project/plugins'
+require_relative 'logger'
 require_relative '../../../config/constants/csv_import/parser_registry'
 
 module OpenProject::CsvImport
@@ -20,6 +21,10 @@ module OpenProject::CsvImport
     initializer 'csv_import.register_parser' do
       ::Constants::CsvImport::ParserRegistry.register(content_type: 'text/csv',
                                                       klass: 'CsvImport::WorkPackages::CsvParser')
+    end
+
+    initializer 'csv_import.delayed_worker_runtime' do
+      Delayed::Worker.max_run_time = 7.days
     end
 
     patches [:JournalManager]

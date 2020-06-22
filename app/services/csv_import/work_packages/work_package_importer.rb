@@ -136,8 +136,6 @@ module CsvImport
                 yield nil
               end
             end
-          rescue StandardError
-            yield nil
           ensure
             File.delete(file_path) if File.exists?(file_path)
           end
@@ -145,6 +143,8 @@ module CsvImport
 
         def from_s3(name, &block)
           s3_bucket.files.get(name, &block)
+        rescue StandardError
+          nil
         end
 
         def s3_bucket
