@@ -157,6 +157,6 @@ describe 'importing a csv file', js: true do
 
     # the delayed job status should be failed
     expect(Delayed::Job::Status.last.status)
-      .to eql('error')
+      .to eql('failure')
   end
 end

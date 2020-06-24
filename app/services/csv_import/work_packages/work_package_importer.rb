@@ -29,6 +29,9 @@ module CsvImport
         def create_work_package(record, validate)
           modify_work_package(record, ::WorkPackage.new) do |work_package, attributes|
             log("Creating new work package based on record: #{record.data_id}")
+
+            prevent_mail_sending(work_package)
+
             ::WorkPackages::CreateService
               .new(**disable_validation({ user: find_user(attributes) }, !validate))
               .call(work_package: work_package,
@@ -40,6 +43,9 @@ module CsvImport
         def update_work_package(record, validate)
           modify_work_package(record, ::WorkPackage.find(record.import_id)) do |work_package, attributes|
             log("Updating existing work package #{record.import_id} based on record: #{record.data_id}")
+
+            prevent_mail_sending(work_package)
+
             ::WorkPackages::UpdateService
               .new(**disable_validation({ user: find_user(attributes), model: work_package }, !validate))
               .call(send_notifications: false,
@@ -98,6 +104,8 @@ module CsvImport
         def build_attachment(work_package, file, user)
           attachment = work_package.attachments.build({ author: user,
                                                         file: file })
+
+          prevent_mail_sending(attachment)
 
           ServiceResult.new success: true, result: attachment
         end
@@ -183,6 +191,10 @@ module CsvImport
           else
             params
           end
+        end
+
+        def prevent_mail_sending(journable)
+          journable.extend(CsvImport::WorkPackages::WithoutJournalNotification)
         end
       end
     end
