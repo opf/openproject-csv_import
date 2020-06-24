@@ -76,6 +76,15 @@ module API
                 content_string
               end
             end
+
+            def schedule_job(import_attachment, validate)
+              args = [current_user, import_attachment]
+              unless validate
+                args << false
+              end
+
+              ::CsvImport::WorkPackageJob.perform_later(*args)
+            end
           end
 
           after_validation do
@@ -107,7 +116,7 @@ module API
 
             set_current_attachment_id(import_attachment)
 
-            ::CsvImport::WorkPackageJob.perform_later(current_user, import_attachment)
+            schedule_job(import_attachment, params.fetch(:validate) { true })
 
             {
               status: current_status_string

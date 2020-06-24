@@ -210,6 +210,84 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
           .to exist
       end
     end
+
+    context 'with faulty data' do
+      let!(:workflows) {
+        # That workflow does no longer exist
+      }
+
+      let(:params) do
+        {
+          data: Base64.encode64(csv_content),
+          contentType: content_type
+        }
+      end
+
+      it 'fails importing' do
+        expect {
+         perform_enqueued_jobs
+        }.to raise_error CsvImport::WorkPackageJob::UnsuccessfulImport
+
+        expect(WorkPackage.count)
+          .to eql(0)
+
+        mail = ActionMailer::Base.deliveries.last
+
+        expect(mail)
+          .not_to be_nil
+
+        expect(mail.subject)
+          .to eql("Import failed")
+
+        expect(mail.to)
+          .to match_array [admin.mail]
+      end
+
+      context 'with the validate parameter set to false' do
+        let(:params) do
+          {
+            data: Base64.encode64(csv_content),
+            contentType: content_type,
+            validate: false
+          }
+        end
+
+        it 'creates the work packages' do
+          perform_enqueued_jobs
+
+          expect(WorkPackage.count)
+            .to eql(2)
+
+          mail = ActionMailer::Base.deliveries.last
+
+          expect(mail)
+            .not_to be_nil
+
+          expect(mail.subject)
+            .to eql("Import completed successfully")
+
+          expect(mail.to)
+            .to match_array [admin.mail]
+
+          expect(mail.html_part.body)
+            .to include("Work packages: 2")
+          expect(mail.html_part.body)
+            .to include("Attachments: 0")
+          expect(mail.html_part.body)
+            .to include("Relations: 1")
+
+          expect(mail.attachments.length)
+            .to eql 1
+
+          expect(CSV.parse(mail.attachments[0].read))
+            .to match_array [["1", WorkPackage.first.id.to_s], ["2", WorkPackage.last.id.to_s]]
+
+          # The workflow for this does not exist
+          expect(WorkPackage.where(subject: 'A newer subject').pluck(:status_id))
+            .to match_array(2)
+        end
+      end
+    end
   end
 
   describe '#get /api/v3/csv_import' do

@@ -10,11 +10,11 @@ module CsvImport
       extend ServiceErrorMixin
 
       class << self
-        def import(record)
+        def import(record, validate = true)
           call = if record.import_id
-                   update_work_package(record)
+                   update_work_package(record, validate)
                  else
-                   create_work_package(record)
+                   create_work_package(record, validate)
                  end
 
           log("Record imported #{call&.success? ? 'succesfully' : 'unsuccessfully'}")
@@ -26,23 +26,22 @@ module CsvImport
 
         private
 
-        def create_work_package(record)
+        def create_work_package(record, validate)
           modify_work_package(record, ::WorkPackage.new) do |work_package, attributes|
             log("Creating new work package based on record: #{record.data_id}")
             ::WorkPackages::CreateService
-              .new(user: find_user(attributes))
+              .new(**disable_validation({ user: find_user(attributes) }, !validate))
               .call(work_package: work_package,
                     send_notifications: false,
                     **work_package_attributes(attributes).merge(within_db_process: true))
           end
         end
 
-        def update_work_package(record)
+        def update_work_package(record, validate)
           modify_work_package(record, ::WorkPackage.find(record.import_id)) do |work_package, attributes|
             log("Updating existing work package #{record.import_id} based on record: #{record.data_id}")
             ::WorkPackages::UpdateService
-              .new(user: find_user(attributes),
-                   model: work_package)
+              .new(**disable_validation({ user: find_user(attributes), model: work_package }, !validate))
               .call(send_notifications: false,
                     **work_package_attributes(attributes))
           end
@@ -176,6 +175,14 @@ module CsvImport
 
         def log(message)
           OpenProject::CsvImport::Logger.log(message)
+        end
+
+        def disable_validation(params, disable)
+          if disable
+            params.merge(contract_class: EmptyContract)
+          else
+            params
+          end
         end
       end
     end

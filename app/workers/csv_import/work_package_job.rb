@@ -1,8 +1,8 @@
 module CsvImport
   class WorkPackageJob < AbstractJob
-    def perform(user, attachment)
+    def perform(user, attachment, validate = true)
       call = CsvImport::WorkPackageService
-             .new(user)
+             .new(user, validate)
              .call(attachment_path(attachment), attachment.content_type)
 
       if call.success?

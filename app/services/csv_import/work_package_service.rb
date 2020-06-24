@@ -1,7 +1,8 @@
 module CsvImport
   class WorkPackageService
-    def initialize(user)
+    def initialize(user, validate = true)
       self.user = user
+      self.validate = validate
     end
 
     def call(work_packages_path, content_type)
@@ -16,7 +17,8 @@ module CsvImport
 
     private
 
-    attr_accessor :user
+    attr_accessor :user,
+                  :validate
 
     def import(work_packages_path, content_type)
       records = parse(work_packages_path, content_type)
@@ -115,7 +117,7 @@ module CsvImport
     end
 
     def import_work_package(record)
-      ::CsvImport::WorkPackages::WorkPackageImporter.import(record)
+      ::CsvImport::WorkPackages::WorkPackageImporter.import(record, validate)
     end
 
     def import_relations(record)
