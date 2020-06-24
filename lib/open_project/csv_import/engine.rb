@@ -25,6 +25,7 @@ module OpenProject::CsvImport
 
     initializer 'csv_import.delayed_worker_runtime' do
       Delayed::Worker.max_run_time = 7.days
+      Delayed::Worker.max_attempts = 1
     end
 
     patches [:JournalManager]
