@@ -151,7 +151,7 @@ describe 'importing a csv file', js: true do
       .to match_array [admin.mail]
 
     expect(mail.body)
-      .to have_content("Failed to import line 2:")
+      .to have_content("Failed to import record with id 1 and timestamp 2019-05-02T12:20:32+00:00:")
     expect(mail.body)
       .to have_content("Status is invalid because no valid transition exists from old to new status for the current user's roles.")
 

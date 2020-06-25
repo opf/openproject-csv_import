@@ -83,7 +83,7 @@ module CsvImport
         def coerce_datetime(record, source_attribute)
           record.data[source_attribute] = DateTime.iso8601(record.data[source_attribute])
         rescue ArgumentError
-          record.wp_call = failure_result("'#{record.data[source_attribute]}' is not an ISO 8601 compatible timestamp.")
+          record.work_package_call = failure_result("'#{record.data[source_attribute]}' is not an ISO 8601 compatible timestamp.")
         end
 
         def coerce_date(record, source_attribute, sink_attribute = source_attribute)
@@ -91,7 +91,7 @@ module CsvImport
 
           record.data[sink_attribute] = DateTime.iso8601(source) if source
         rescue ArgumentError
-          record.wp_call = failure_result("'#{source}' is not an ISO 8601 compatible date.")
+          record.work_package_call = failure_result("'#{source}' is not an ISO 8601 compatible date.")
         end
       end
     end

@@ -21,7 +21,7 @@ module CsvImport
 
           call
         rescue UserNotFoundError => e
-          record.wp_call = failure_result(e.message)
+          record.work_package_call = failure_result(e.message)
         end
 
         private
@@ -58,7 +58,7 @@ module CsvImport
 
           record.attachment_calls = attach(work_package, attributes)
 
-          record.wp_call = yield work_package, attributes unless record.invalid?
+          record.work_package_call = yield work_package, attributes unless record.invalid?
         end
 
         def attach(work_package, attributes)

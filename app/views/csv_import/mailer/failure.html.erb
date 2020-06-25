@@ -1,6 +1,6 @@
 <% failures.each do |failure| %>
   <div>
-    Failed to import line <%= failure.line %>:
+    Failed to import record with id <%= failure.id %> and timestamp <%= failure.timestamp %>:
 
     <ul>
       <% failure.messages.each do |message| %>

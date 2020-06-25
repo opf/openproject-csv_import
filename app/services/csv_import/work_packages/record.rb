@@ -3,7 +3,7 @@ module CsvImport
     class Record
       attr_accessor :data,
                     :line,
-                    :wp_call,
+                    :work_package_call,
                     :relation_calls,
                     :attachment_calls,
                     :work_packages_map
@@ -25,34 +25,36 @@ module CsvImport
         work_packages_map[id]
       end
 
-      def wp_call=(call)
+      def work_package_call=(call)
         work_packages_map[data_id] = call.result&.id
 
-        @wp_call = call
+        add_errors(call)
+
+        @work_package_call = call
+      end
+
+      def attachment_calls=(calls)
+        add_errors(calls)
+
+        @attachment_calls = calls
+      end
+
+      def relation_calls=(calls)
+        add_errors(calls)
+
+        @relation_calls = calls
       end
 
       def work_package
-        wp_call&.result
+        work_package_call&.result || (import_id && WorkPackage.find_by(id: import_id))
       end
 
       def attachments
-        attachment_calls&.map(&:result)
+        attachment_calls&.map(&:result) || (import_ids[:attachments] && WorkPackage.find_by(id: import_ids[:attachments]))
       end
 
       def invalid?
-        calls.any?(&:failure?)
-      end
-
-      def failure_call
-        calls.detect(&:failure?)
-      end
-
-      def calls
-        ([wp_call] + (attachment_calls || []) + (relation_calls || [])).compact
-      end
-
-      def results
-        calls.map(&:result).flatten
+        error_messages.any?
       end
 
       def import_ids
@@ -63,16 +65,47 @@ module CsvImport
         }
       end
 
+      def error_messages
+        @error_messages ||= []
+      end
+
+      def add_errors(calls)
+        @error_messages ||= []
+
+        Array(calls).select(&:failure?).each do |call|
+          @error_messages += call.errors.full_messages
+        end
+      end
+
       def work_package_imported!
-        import_ids[:work_package] = import_id
+        ar_record_imported!(:work_package, false)
       end
 
       def attachments_imported!
-        import_ids[:attachments] = (attachment_calls || []).map { |call| call.result&.id }
+        ar_record_imported!(:attachments, true)
       end
 
       def relations_imported!
-        import_ids[:relations] = (relation_calls || []).map { |call| call.result&.id }
+        ar_record_imported!(:relations, true)
+      end
+
+      def ar_record_imported!(name, multiple)
+        calls_name = if multiple
+                       "#{name.to_s.singularize}_calls"
+                     else
+                       "#{name.to_s.singularize}_call"
+                     end
+
+        calls = Array(send(calls_name.to_sym))
+
+        import_ids[name] = if multiple
+                             calls.compact.map { |call| call.result&.id }
+                           else
+                             calls.first&.result&.id
+                           end
+
+        # Free up memory
+        instance_variable_set(:"@#{calls_name}", nil)
       end
     end
   end

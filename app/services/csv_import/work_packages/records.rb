@@ -87,24 +87,6 @@ module CsvImport
         first_invalid.nil?
       end
 
-      def first_failure_or
-        if (invalid = first_invalid)
-          invalid.failure_call
-        else
-          yield
-        end
-      end
-
-      def results
-        results = []
-
-        each do |record|
-          results += record.results
-        end
-
-        results
-      end
-
       def import_ids
         ids = OpenStruct.new(work_packages: [], attachments: [], relations: [], work_packages_map: work_packages_map)
 

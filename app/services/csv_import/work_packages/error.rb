@@ -1,12 +1,14 @@
 module CsvImport
   module WorkPackages
     class Error
-      attr_accessor :line,
+      attr_accessor :id,
+                    :timestamp,
                     :messages
 
-      def initialize(line, messages)
-        self.line = line
+      def initialize(id, timestamp, messages)
         self.messages = messages
+        self.id = id
+        self.timestamp = timestamp
       end
     end
   end

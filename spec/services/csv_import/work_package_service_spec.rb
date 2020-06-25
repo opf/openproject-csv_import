@@ -378,8 +378,11 @@ describe CsvImport::WorkPackageService do
       expect(call.errors.length)
         .to eql 1
 
-      expect(call.errors.first.line)
-        .to eql 2
+      expect(call.errors.first.id)
+        .to eql "1"
+
+      expect(call.errors.first.timestamp)
+        .to eql DateTime.parse("2019-05-02T12:20:32Z")
 
       expect(call.errors.first.messages)
         .to match_array ["The attachment '#{doc_file.key}' does not exist."]
@@ -397,8 +400,11 @@ describe CsvImport::WorkPackageService do
       expect(call.errors.length)
         .to eql 1
 
-      expect(call.errors.first.line)
-        .to eql 2
+      expect(call.errors.first.id)
+        .to eql "1"
+
+      expect(call.errors.first.timestamp)
+        .to eql DateTime.parse("2019-05-02T12:20:32Z")
 
       expect(call.errors.first.messages)
         .to match_array ["Status is invalid because no valid transition exists from old to new status for the current user's roles."]
@@ -414,8 +420,10 @@ describe CsvImport::WorkPackageService do
       expect(call.errors.length)
         .to eql 3
 
-      expect(call.errors.map(&:line))
-        .to match_array [2,4,5]
+      expect(call.errors.map { |e| [e.id, e.timestamp] })
+        .to match_array [["1", DateTime.parse("2019-05-02T12:19:32Z")],
+                         ["2", DateTime.parse("2019-01-10T12:20:32Z")],
+                         ["3", DateTime.parse("2019-03-10T12:20:32Z")]]
 
       expect(call.errors.map(&:messages).flatten.uniq)
         .to match_array ["Priority can't be blank."]
@@ -436,8 +444,10 @@ describe CsvImport::WorkPackageService do
       expect(call.errors.length)
         .to eql 3
 
-      expect(call.errors.map(&:line))
-        .to match_array [1,4,5]
+      expect(call.errors.map { |e| [e.id, e.timestamp] })
+        .to match_array [["1", DateTime.parse("2019-05-02T12:19:32Z")],
+                         ["2", DateTime.parse("2019-01-10T12:20:32Z")],
+                         ["3", DateTime.parse("2019-03-10T12:20:32Z")]]
 
       expect(call.errors.map(&:messages).flatten.uniq)
         .to match_array ["The user with the id 5 does not exist"]
@@ -453,8 +463,11 @@ describe CsvImport::WorkPackageService do
       expect(call.errors.length)
         .to eql 4
 
-      expect(call.errors.map(&:line))
-        .to match_array [1,2,3,4]
+      expect(call.errors.map { |e| [e.id, e.timestamp] })
+        .to match_array [["1", "2019-0502T12:19:32Z"],
+                         ["1", "2019-05a02T12:20:32Z"],
+                         ["2", "2019-01-10T12:ab:32ZV"],
+                         ["2", "2019/01/11T12:20:32ZV"]]
 
       expect(call.errors.map(&:messages).flatten.uniq)
         .to match_array ["'2019-01-10T12:ab:32ZV' is not an ISO 8601 compatible timestamp.",
@@ -478,8 +491,10 @@ describe CsvImport::WorkPackageService do
       expect(call.errors.length)
         .to eql 3
 
-      expect(call.errors.map(&:line))
-        .to match_array [1,4,5]
+      expect(call.errors.map { |e| [e.id, e.timestamp] })
+        .to match_array [["1", DateTime.parse("2019-05-02T12:19:32Z")],
+                         ["2", DateTime.parse("2019-01-10T12:20:32Z")],
+                         ["3", DateTime.parse("2019-03-10T12:20:32Z")]]
 
       expect(call.errors.map(&:messages).flatten.uniq)
         .to match_array ["Project can't be blank."]

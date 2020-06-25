@@ -66,7 +66,7 @@ module CsvImport
           message = <<~MESSAGE
             Record with id: #{record.data_id} - timestamp: #{record.timestamp}: Is invalid.
 
-            #{record.failure_call.errors.full_messages}
+            #{record.error_messages}
           MESSAGE
 
           log(message)
@@ -102,11 +102,11 @@ module CsvImport
 
     def failure_result(records)
       errors = records.invalids.map do |i|
-                 CsvImport::WorkPackages::Error.new(i.line, i.failure_call.errors.full_messages)
+                 CsvImport::WorkPackages::Error.new(i.data_id, i.timestamp, i.error_messages)
                end
 
       ServiceResult.new(success: false,
-                        result: records.results,
+                        result: nil,
                         errors: errors)
     end
 
