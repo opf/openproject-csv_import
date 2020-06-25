@@ -104,6 +104,18 @@ module CsvImport
 
         results
       end
+
+      def import_ids
+        ids = OpenStruct.new(work_packages: [], attachments: [], relations: [], work_packages_map: work_packages_map)
+
+        each do |record|
+          ids.work_packages << record.import_ids[:work_package]
+          ids.attachments += (record.import_ids[:attachments])
+          ids.relations += (record.import_ids[:relations])
+        end
+
+        ids
+      end
     end
   end
 end

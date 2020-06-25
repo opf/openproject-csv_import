@@ -315,15 +315,12 @@ describe CsvImport::WorkPackageService do
       .to eql work_package3
   end
 
-  it 'returns the created/updated models in the results' do
+  it 'returns ids to the created/updated models in the results' do
     expect(call.result.work_packages.length)
       .to eql(5)
 
     expect(call.result.attachments.length)
       .to eql(4)
-
-    expect(call.result.attachments.select(&:destroyed?).length)
-      .to eql(1)
 
     expect(call.result.relations.length)
       .to eql(2)

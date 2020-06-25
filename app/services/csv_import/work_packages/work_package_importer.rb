@@ -17,7 +17,7 @@ module CsvImport
                    create_work_package(record, validate)
                  end
 
-          log("Record imported #{call&.success? ? 'succesfully' : 'unsuccessfully'}")
+          log("Record imported #{call&.success? ? 'successfully' : 'unsuccessfully'}")
 
           call
         rescue UserNotFoundError => e

@@ -59,6 +59,8 @@ module CsvImport
         log("Importing data for record with id: #{record.data_id} - timestamp: #{record.timestamp}.")
         import_work_package(record) unless record.invalid?
         fix_timestamp(record) unless record.invalid?
+        record.work_package_imported!
+        record.attachments_imported!
 
         if record.invalid?
           message = <<~MESSAGE
@@ -72,6 +74,7 @@ module CsvImport
           log("Record with id: #{record.data_id} - timestamp: #{record.timestamp}: Is valid.")
         end
 
+        # This leads to other records of the same work package being skipped if this record is invalid
         record.invalid?
       end
     end
@@ -81,8 +84,9 @@ module CsvImport
     end
 
     def cleanup_on_failure(records)
-      records.results.select { |r| r.is_a?(WorkPackage) }.each do |work_package|
-        begin
+      log("Cleaning up work packages")
+      WorkPackage.where(id: records.import_ids.work_packages).in_batches.each do |work_packages|
+        work_packages.each do |work_package|
           ::WorkPackages::DeleteService
             .new(user: user, model: work_package)
             .call
@@ -93,13 +97,7 @@ module CsvImport
     end
 
     def success_result(records)
-      objects_by_type = records.results.group_by(&:class)
-      result = OpenStruct.new(work_packages: objects_by_type[WorkPackage],
-                              relations: objects_by_type[Relation],
-                              attachments: objects_by_type[Attachment],
-                              work_packages_map: records.work_packages_map)
-
-      ServiceResult.new(success: true, result: result)
+      ServiceResult.new(success: true, result: records.import_ids)
     end
 
     def failure_result(records)
@@ -122,6 +120,8 @@ module CsvImport
 
     def import_relations(record)
       ::CsvImport::WorkPackages::RelationImporter.import(record)
+
+      record.relations_imported!
     end
 
     def with_settings

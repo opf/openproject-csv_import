@@ -30,7 +30,7 @@ module CsvImport
     end
 
     def count_of(key, results)
-      (results.send(key) || []).map(&:id).uniq.count
+      (results.send(key) || []).uniq.count
     end
 
     def mapping_file(mapping)

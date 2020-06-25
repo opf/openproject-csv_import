@@ -27,6 +27,7 @@ module CsvImport
 
       def wp_call=(call)
         work_packages_map[data_id] = call.result&.id
+
         @wp_call = call
       end
 
@@ -52,6 +53,26 @@ module CsvImport
 
       def results
         calls.map(&:result).flatten
+      end
+
+      def import_ids
+        @import_ids ||= {
+          work_package: nil,
+          attachments: [],
+          relations: []
+        }
+      end
+
+      def work_package_imported!
+        import_ids[:work_package] = import_id
+      end
+
+      def attachments_imported!
+        import_ids[:attachments] = (attachment_calls || []).map { |call| call.result&.id }
+      end
+
+      def relations_imported!
+        import_ids[:relations] = (relation_calls || []).map { |call| call.result&.id }
       end
     end
   end
