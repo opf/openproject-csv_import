@@ -78,6 +78,7 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
   let!(:version2) do
     FactoryBot.create(:version, project: project1, id: 2)
   end
+  let(:validate) { true }
 
   before do
     login_as(current_user)
@@ -88,7 +89,7 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
 
   describe '#post /api/v3/csv_import' do
     let(:content_type) { 'text/csv' }
-    let(:params) { { data: Base64.encode64(csv_content), contentType: content_type } }
+    let(:params) { { data: Base64.encode64(csv_content), contentType: content_type, validate: validate } }
 
     before do
       post request_path, params.to_json
@@ -96,6 +97,11 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
 
     it 'responds 201 HTTP Created' do
       expect(subject.status).to eq(201)
+    end
+
+    it 'returns a body indicating `Processing`' do
+      expect(subject.body)
+        .to be_json_eql({ status: 'Processing' }.to_json)
     end
 
     it 'creates the work packages' do
@@ -144,6 +150,18 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
       before do
         # second time already
         post request_path, { data: Base64.encode64(csv_content), contentType: content_type }.to_json
+      end
+
+      it 'responds 409' do
+        expect(subject.status).to eq(409)
+      end
+    end
+
+    context 'if triggering multiple imports (without the first having finished) and without validation' do
+      let(:validate) { false }
+      before do
+        # second time already
+        post request_path, { data: Base64.encode64(csv_content), contentType: content_type, validate: false }.to_json
       end
 
       it 'responds 409' do

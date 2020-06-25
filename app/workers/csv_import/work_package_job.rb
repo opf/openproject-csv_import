@@ -24,7 +24,7 @@ module CsvImport
     end
 
     def attachment
-      arguments.last
+      arguments[1]
     end
 
     class UnsuccessfulImport < StandardError; end
