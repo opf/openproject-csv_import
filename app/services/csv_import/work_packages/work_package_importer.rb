@@ -74,7 +74,9 @@ module CsvImport
         end
 
         def destroy_outdated_attachments(work_package, names)
-          attachments_to_delete = work_package.attachments.select { |a| !names.include?(a.filename) }
+          # Deutsche Bahn specific extension to handle underscore same as blank
+          normalized_names = names.map { |n| n.tr('_ -', '') }
+          attachments_to_delete = work_package.attachments.select { |a| !normalized_names.include?(a.filename.tr('_ -', '')) }
           attachments_to_delete.each(&:destroy)
 
           attachments_to_delete.map do |attachment|
@@ -83,7 +85,9 @@ module CsvImport
         end
 
         def create_new_attachments(work_package, names, attributes)
-          attachments_to_create = names - work_package.attachments.map(&:filename)
+          # Deutsche Bahn specific extension to handle underscore same as blank
+          existing_filenames = work_package.attachments.map(&:filename).map { |n| n.tr('_ -', '') }
+          attachments_to_create = names.select { |n| !existing_filenames.include?(n.tr('_ -', '')) }
 
           attachments_to_create.map do |name|
             from_template_file(name) do |file|
