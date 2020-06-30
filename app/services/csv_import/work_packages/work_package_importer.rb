@@ -74,9 +74,8 @@ module CsvImport
         end
 
         def destroy_outdated_attachments(work_package, names)
-          # Deutsche Bahn specific extension to handle underscore same as blank
-          normalized_names = names.map { |n| n.tr('_ -', '') }
-          attachments_to_delete = work_package.attachments.select { |a| !normalized_names.include?(a.filename.tr('_ -', '')) }
+          normalized_names = names.map { |n| normalize_attachment_name(n) }
+          attachments_to_delete = work_package.attachments.select { |a| !normalized_names.include?(normalize_attachment_name(a.filename)) }
           attachments_to_delete.each(&:destroy)
 
           attachments_to_delete.map do |attachment|
@@ -85,9 +84,8 @@ module CsvImport
         end
 
         def create_new_attachments(work_package, names, attributes)
-          # Deutsche Bahn specific extension to handle underscore same as blank
-          existing_filenames = work_package.attachments.map(&:filename).map { |n| n.tr('_ -', '') }
-          attachments_to_create = names.select { |n| !existing_filenames.include?(n.tr('_ -', '')) }
+          existing_filenames = work_package.attachments.map(&:filename).map { |n| normalize_attachment_name(n) }
+          attachments_to_create = names.select { |n| !existing_filenames.include?(normalize_attachment_name(n)) }
 
           attachments_to_create.map do |name|
             from_template_file(name) do |file|
@@ -199,6 +197,11 @@ module CsvImport
 
         def prevent_mail_sending(journable)
           journable.extend(CsvImport::WorkPackages::WithoutJournalNotification)
+        end
+
+        def normalize_attachment_name(name)
+          # Deutsche Bahn specific extension to handle underscore same as blank
+          name.gsub(/( Anh )|(_Anh_)/, '').tr('_ -', '')
         end
       end
     end
