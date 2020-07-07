@@ -93,6 +93,10 @@ module CsvImport
         rescue ArgumentError
           record.work_package_call = failure_result("'#{source}' is not an ISO 8601 compatible date.")
         end
+
+        def log(message)
+          OpenProject::CsvImport::Logger.log(message)
+        end
       end
     end
   end
