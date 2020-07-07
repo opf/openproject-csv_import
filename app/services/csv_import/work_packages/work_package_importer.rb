@@ -160,15 +160,17 @@ module CsvImport
         end
 
         def from_s3(name, retries: 3, &block)
-          s3_bucket.files.get(name, &block)
-        rescue OpenSSL::SSL::SSLError => e
-          log("SSL Error fetching file from s3: #{e.message}. Retrying #{retry} times")
+          begin
+            s3_bucket.files.get(name, &block)
+          rescue OpenSSL::SSL::SSLError => e
+            log("SSL Error fetching file from s3: #{e.message}. Retrying #{retries} times")
 
-          from_s3(name, retries: retries - 1, &block) if retries > 0
-        rescue StandardError => e
-          log("Error fetching file from s3: #{e.message}")
+            from_s3(name, retries: retries - 1, &block) if retries > 0
+          rescue StandardError => e
+            log("Error fetching file from s3: #{e.message}")
 
-          nil
+            nil
+          end
         end
 
         def s3_bucket
