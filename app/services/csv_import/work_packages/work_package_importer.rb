@@ -207,7 +207,13 @@ module CsvImport
 
         def normalize_attachment_name(name)
           # Deutsche Bahn specific extension to handle underscore same as blank
-          name.gsub(/( Anh )|(_Anh_)/, '').tr('_ -', '')
+          name
+            .gsub(/( Anh )|(_Anh_)/, '')
+            .tr("()<>[]{}@$€$&%!*/\\?'´#,|=_ -‘–\"", '')
+            .gsub('ä', 'ae')
+            .gsub('ö', 'oe')
+            .gsub('ü', 'ue')
+            .gsub('ß', 'ss')
         end
       end
     end
