@@ -15,6 +15,10 @@ module CsvImport
       notify(user, 'Import failed', { failures: failures })
     end
 
+    def critical(user, message)
+      notify(user, 'Critical error on import', { message: message })
+    end
+
     private
 
     def notify(user, subject, locals)

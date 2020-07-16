@@ -34,6 +34,10 @@ module CsvImport
 
         failure_result(records)
       end
+    rescue StandardError => e
+      cleanup_on_failure(records) if defined?(records) && records
+
+      raise e
     end
 
     def process(records)

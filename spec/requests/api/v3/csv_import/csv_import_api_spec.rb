@@ -306,6 +306,41 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
         end
       end
     end
+
+    context 'with invalid data' do
+      let(:csv_content) do
+        File.read(File.join(File.dirname(__FILE__), '../../../../fixtures/invalid_relations.csv'))
+      end
+      let(:params) do
+        {
+          data: Base64.encode64(csv_content),
+          contentType: content_type
+        }
+      end
+
+      it 'fails importing' do
+        expect {
+          perform_enqueued_jobs
+        }.to raise_error CsvImport::WorkPackageJob::UnsuccessfulImport
+
+        expect(WorkPackage.count)
+          .to eql(0)
+
+        mail = ActionMailer::Base.deliveries.last
+
+        expect(mail)
+          .not_to be_nil
+
+        expect(mail.subject)
+          .to eql("Critical error on import")
+
+        expect(mail.body)
+          .to include('Unclosed quoted field in line 3')
+
+        expect(mail.to)
+          .to match_array [admin.mail]
+      end
+    end
   end
 
   describe '#get /api/v3/csv_import' do
