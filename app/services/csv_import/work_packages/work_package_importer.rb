@@ -209,7 +209,7 @@ module CsvImport
           # Deutsche Bahn specific extension to handle underscore same as blank
           name
             .gsub(/( Anh )|(_Anh_)/, '')
-            .tr("()<>[]{}@$€$&%!*/\\?'´#,|=_ -‘–\"", '')
+            .tr("()<>[]{}@$€$&%!*/\\?'´#,|=_ -/\\‘–\"", '')
             .gsub('ä', 'ae')
             .gsub('ö', 'oe')
             .gsub('ü', 'ue')
