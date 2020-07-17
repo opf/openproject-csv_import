@@ -35,10 +35,14 @@ module CsvImport
     end
 
     def send_success(user, result)
+      create_mapping_attachment(user, result.work_packages_map)
+
       CsvImport::Mailer.success(user, result).deliver_now
     end
 
     def send_error(user, errors)
+      create_failure_attachment(user, errors)
+
       CsvImport::Mailer.failure(user, errors).deliver_now
     end
 
@@ -46,10 +50,47 @@ module CsvImport
       message = <<~MSG
         #{error.message}
 
-        #{error.backtrace}
+        #{error.backtrace[0..20].join("\n")}
       MSG
 
+      create_critical_attachment(user, message)
+
       CsvImport::Mailer.critical(user, message).deliver_now
+    end
+
+    def create_mapping_attachment(user, mapping)
+      create_result_attachment(user, { mappings: mapping }.to_json)
+    end
+
+    def create_failure_attachment(user, failures)
+      failure_map = failures.map do |failure|
+        {
+          id: failure.id,
+          timestamp: failure.timestamp,
+          messages: failure.messages
+        }
+      end
+
+      create_result_attachment(user, { errors: failure_map }.to_json)
+    end
+
+    def create_critical_attachment(user, errors)
+      create_result_attachment(user, { fatal: errors }.to_json)
+    end
+
+    def set_current_result_id(attachment)
+      Setting.plugin_openproject_csv_import = Setting.plugin_openproject_csv_import.merge('current_import_result_id' => attachment.id)
+    end
+
+    def create_result_attachment(user, json)
+      file = OpenProject::Files.create_uploaded_file name: "csv_import_result.json",
+                                                     content_type: 'application/json',
+                                                     content: json
+
+      attachment = Attachment.create! file: file,
+                                      author: user
+
+      set_current_result_id(attachment)
     end
 
     class UnsuccessfulImport < StandardError; end

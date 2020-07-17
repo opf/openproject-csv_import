@@ -136,6 +136,17 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
 
       expect(WorkPackage.where(subject: 'Other newer subject'))
         .to exist
+
+      # returns the map of imported work packages when issuing a subsequent get request
+      Setting.clear_cache
+
+      get request_path
+
+      expect(last_response.body)
+        .to be_json_eql({ status: 'Success',
+                          mappings: { "1": WorkPackage.first.id,
+                                      "2": WorkPackage.last.id }
+                        }.to_json)
     end
 
     context 'if non admin' do
@@ -259,6 +270,20 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
 
         expect(mail.to)
           .to match_array [admin.mail]
+
+        Setting.clear_cache
+
+        # returns the errors
+        get request_path
+
+        expect(last_response.body)
+          .to be_json_eql({ status: 'Failure',
+                            errors: [
+                              id: 1,
+                              timestamp: "2019-05-02T12:20:32.000+00:00",
+                              messages: ["Status is invalid because no valid transition exists from old to new status for the current user's roles."]
+                            ]
+                          }.to_json)
       end
 
       context 'with the validate parameter set to false' do
@@ -339,6 +364,18 @@ describe 'API::V3::CsvImport', type: :request, content_type: :json do
 
         expect(mail.to)
           .to match_array [admin.mail]
+
+        # returns the errors
+        Setting.clear_cache
+
+        get request_path
+
+        expect(last_response.body)
+          .to be_json_eql('Failure'.to_json)
+          .at_path('status')
+
+        expect(JSON.parse(last_response.body)['fatal'])
+          .to start_with('Unclosed quoted field in line 3')
       end
     end
   end

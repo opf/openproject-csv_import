@@ -78,6 +78,7 @@ module CsvImport
           attachments_to_delete = work_package.attachments.select { |a| !normalized_names.include?(normalize_attachment_name(a.filename)) }
           attachments_to_delete.each(&:destroy)
 
+
           attachments_to_delete.map do |attachment|
             ServiceResult.new success: true, result: attachment
           end

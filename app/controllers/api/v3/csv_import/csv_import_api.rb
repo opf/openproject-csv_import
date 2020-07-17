@@ -57,8 +57,20 @@ module API
               end
             end
 
-            def set_current_attachment_id(attachment)
-              Setting.plugin_openproject_csv_import = Setting.plugin_openproject_csv_import.merge('current_import_attachment_id' => attachment.id)
+            def reset_settings(attachment)
+              Setting.plugin_openproject_csv_import = { 'current_import_attachment_id' => attachment.id }
+            end
+
+            def current_result_file
+              attachment = Attachment.find_by(id: Setting.plugin_openproject_csv_import['current_import_result_id'])
+
+              return nil unless attachment
+
+              if attachment.file.is_a?(FogFileUploader)
+                attachment.diskfile
+              else
+                attachment.file
+              end
             end
 
             def eligible_for_new?
@@ -85,6 +97,19 @@ module API
 
               ::CsvImport::WorkPackageJob.perform_later(*args)
             end
+
+            def status_response
+              status = {
+                status: current_status_string
+              }
+
+              if current_result_file
+                status.merge!(JSON.load(current_result_file.read))
+              end
+
+              status
+
+            end
           end
 
           after_validation do
@@ -92,9 +117,7 @@ module API
           end
 
           get do
-            {
-              status: current_status_string
-            }
+            status_response
           end
 
           post do
@@ -114,13 +137,11 @@ module API
             import_attachment = Attachment.create! file: uploaded_file,
                                                    author: current_user
 
-            set_current_attachment_id(import_attachment)
+            reset_settings(import_attachment)
 
             schedule_job(import_attachment, params.fetch(:validate) { true })
 
-            {
-              status: current_status_string
-            }
+            status_response
           end
         end
       end
